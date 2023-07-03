@@ -15,12 +15,6 @@ include_directories(external/ktx/include)
 include_directories(external/ktx/other_include)
 include_directories(src/base)
 
-
-OPTION(USE_D2D_WSI "Build the project using Direct to Display swapchain" OFF)
-OPTION(USE_DIRECTFB_WSI "Build the project using DirectFB swapchain" OFF)
-OPTION(USE_WAYLAND_WSI "Build the project using Wayland swapchain" OFF)
-OPTION(USE_HEADLESS "Build the project using headless extension swapchain" OFF)
-
 find_package(Vulkan)
 
 IF(WIN32)
@@ -40,6 +34,10 @@ ELSE()
 	message(STATUS ${Vulkan_LIBRARY})
 ENDIF()
 
+
+
+add_definitions(-DVK_EXAMPLE_ASSETS_DIR=\"${CMAKE_SOURCE_DIR}/assets/\")
+add_definitions(-DVK_EXAMPLE_SHADERS_DIR=\"${CMAKE_SOURCE_DIR}/src/shaders/\")
 
 # Set preprocessor defines
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNOMINMAX -D_USE_MATH_DEFINES")

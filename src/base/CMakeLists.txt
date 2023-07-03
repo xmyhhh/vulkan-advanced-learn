@@ -1,4 +1,4 @@
-file(GLOB BASE_SRC "*.cpp" "*.hpp" "*.h" "../external/imgui/*.cpp")
+file(GLOB BASE_SRC "*.cpp" "*.hpp" "*.h" "../../external/imgui/*.cpp")
 file(GLOB BASE_HEADERS "*.hpp" "*.h")
 
 set(KTX_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../external/ktx)
