@@ -346,6 +346,7 @@ public:
 		memcpy(uniformBuffers.params.mapped, &uboParamsLight, sizeof(uboParamsLight));
 	}
 
+	//UI
 	virtual void OnUpdateUIOverlay(vks::UIOverlay* overlay)
 	{
 		if (overlay->header("Settings")) {
