@@ -72,9 +72,7 @@ public:
 		if (!prepared)
 			return;
 		draw();
-
 	}
-
 };
 
 VULKAN_EXAMPLE_MAIN()
