@@ -290,7 +290,6 @@ void VulkanExampleBase::nextFrame()
 	}
 	tPrevEnd = tEnd;
 
-	// TODO: Cap UI overlay update rates
 	updateOverlay();
 }
 
