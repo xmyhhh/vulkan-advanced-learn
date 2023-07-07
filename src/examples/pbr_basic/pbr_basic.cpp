@@ -147,17 +147,17 @@ public:
 
 	void loadAssets()
 	{
-		std::vector<std::string> filenames = {"vulkanscenemodels.gltf", "sphere.gltf", "teapot.gltf", "torusknot.gltf", "venus.gltf" };
+		std::vector<std::string> filenames = {"sphere.gltf", "teapot.gltf", "torusknot.gltf", "venus.gltf" };
 		models.objects.resize(filenames.size());
 		for (size_t i = 0; i < filenames.size(); i++) {
 			models.objects[i].loadFromFile(getAssetPath() + "models/" + filenames[i], vulkanDevice, queue, vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::FlipY);
 		}
 
-		textures.albedoMap.loadFromFile(getAssetPath() + "models/cerberus/albedo.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
+		textures.albedoMap.loadFromFile(getAssetPath() + "textures/ktx2/rustediron2_basecolor.ktx2", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
 		textures.normalMap.loadFromFile(getAssetPath() + "models/cerberus/normal.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
 		textures.aoMap.loadFromFile(getAssetPath() + "models/cerberus/ao.ktx", VK_FORMAT_R8_UNORM, vulkanDevice, queue);
-		textures.metallicMap.loadFromFile(getAssetPath() + "models/cerberus/metallic.ktx", VK_FORMAT_R8_UNORM, vulkanDevice, queue);
-		textures.roughnessMap.loadFromFile(getAssetPath() + "models/cerberus/roughness.ktx", VK_FORMAT_R8_UNORM, vulkanDevice, queue);
+		textures.metallicMap.loadFromFile(getAssetPath() + "textures/ktx2/rustediron2_metallic.ktx2", VK_FORMAT_R8_UNORM, vulkanDevice, queue);
+		textures.roughnessMap.loadFromFile(getAssetPath() + "textures/ktx2/rustediron2_roughness.ktx2", VK_FORMAT_R8_UNORM, vulkanDevice, queue);
 	}
 
 	void prepareUniformBuffers()
@@ -266,7 +266,7 @@ public:
 		pipelineCI.pDynamicState = &dynamicState;
 		pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
 		pipelineCI.pStages = shaderStages.data();
-		pipelineCI.pVertexInputState = vkglTF::Vertex::getPipelineVertexInputState({ vkglTF::VertexComponent::Position, vkglTF::VertexComponent::Normal });
+		pipelineCI.pVertexInputState = vkglTF::Vertex::getPipelineVertexInputState({ vkglTF::VertexComponent::Position, vkglTF::VertexComponent::Normal , vkglTF::VertexComponent::UV });
 
 		// PBR pipeline
 		shaderStages[0] = loadShader(getShadersPath() + "pbr_basic/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);

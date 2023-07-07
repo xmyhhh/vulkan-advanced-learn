@@ -32,7 +32,7 @@ const float PI = 3.14159265359;
 
 vec3 materialcolor()
 {
-	return texture(aoMap, inUV).rgb;
+	return texture(albedoMap, inUV).rgb;
 }
 
 // Normal Distribution function --------------------------------------
@@ -92,7 +92,7 @@ vec3 BRDF(vec3 L, vec3 V, vec3 N, float metallic, float roughness)
 
 		vec3 kD = vec3(1.0) - F;
 		kD *= 1.0 - METALLIC;   
-
+		kD *= 0.0;
 		color += (kD * materialcolor() / PI + spec) * dotNL * lightColor;
 	}
 
@@ -125,4 +125,6 @@ void main()
 	color = pow(color, vec3(0.4545));
 
 	outColor = vec4(color, 1.0);
+
+	
 }
