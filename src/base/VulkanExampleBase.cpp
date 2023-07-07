@@ -1261,6 +1261,12 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 		{
 			switch (wParam)
 			{
+			case KEY_Q:
+				camera.keys.q = true;
+				break;
+			case KEY_E:
+				camera.keys.e = true;
+				break;
 			case KEY_W:
 				camera.keys.up = true;
 				break;
@@ -1283,6 +1289,12 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 		{
 			switch (wParam)
 			{
+			case KEY_Q:
+				camera.keys.q = false;
+				break;
+			case KEY_E:
+				camera.keys.e = false;
+				break;
 			case KEY_W:
 				camera.keys.up = false;
 				break;

@@ -15,6 +15,8 @@
 #define KEY_F3 VK_F3
 #define KEY_F4 VK_F4
 #define KEY_F5 VK_F5
+#define KEY_Q 0x51
+#define KEY_E 0x45
 #define KEY_W 0x57
 #define KEY_A 0x41
 #define KEY_S 0x53

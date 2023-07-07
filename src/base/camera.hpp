@@ -72,11 +72,14 @@ public:
 		bool right = false;
 		bool up = false;
 		bool down = false;
+
+		bool q = false;
+		bool e = false;
 	} keys;
 
 	bool moving()
 	{
-		return keys.left || keys.right || keys.up || keys.down;
+		return keys.left || keys.right || keys.up || keys.down || keys.q || keys.e;
 	}
 
 	float getNearClip() { 
@@ -163,6 +166,10 @@ public:
 
 				if (keys.up)
 					position += camFront * moveSpeed;
+				if (keys.q)
+					position -= glm::vec3(0.0f, 1.0f, 0.0f) * moveSpeed;
+				if (keys.e)
+					position += glm::vec3(0.0f, 1.0f, 0.0f) * moveSpeed;
 				if (keys.down)
 					position -= camFront * moveSpeed;
 				if (keys.left)

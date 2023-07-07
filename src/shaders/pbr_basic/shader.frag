@@ -2,6 +2,7 @@
 
 layout (location = 0) in vec3 inWorldPos;
 layout (location = 1) in vec3 inNormal;
+layout (location = 2) in vec2 inUV;
 
 layout (binding = 0) uniform UBO 
 {
@@ -15,23 +16,23 @@ layout (binding = 1) uniform UBOShared {
 	vec4 lights[4];
 } uboParams;
 
-layout (location = 0) out vec4 outColor;
+layout (binding = 5) uniform sampler2D albedoMap;
+layout (binding = 6) uniform sampler2D normalMap;
+layout (binding = 7) uniform sampler2D aoMap;
+layout (binding = 8) uniform sampler2D metallicMap;
+layout (binding = 9) uniform sampler2D roughnessMap;
 
-layout(push_constant) uniform PushConsts {
-	layout(offset = 12) float roughness;
-    layout(offset = 16) float metallic;
-	layout(offset = 20) float r;
-	layout(offset = 24) float g;
-	layout(offset = 28) float b;
-} material;
+layout (location = 0) out vec4 outColor;
 
 const float PI = 3.14159265359;
 
-//#define ROUGHNESS_PATTERN 1
+#define ALBEDO pow(texture(albedoMap, inUV).rgb, vec3(2.2))
+#define ROUGHNESS texture(roughnessMap, inUV).r
+#define METALLIC texture(metallicMap, inUV).r
 
 vec3 materialcolor()
 {
-	return vec3(material.r, material.g, material.b);
+	return texture(aoMap, inUV).rgb;
 }
 
 // Normal Distribution function --------------------------------------
@@ -89,7 +90,10 @@ vec3 BRDF(vec3 L, vec3 V, vec3 N, float metallic, float roughness)
 
 		vec3 spec = D * F * G / (4.0 * dotNL * dotNV);
 
-		color += spec * dotNL * lightColor;
+		vec3 kD = vec3(1.0) - F;
+		kD *= 1.0 - METALLIC;   
+
+		color += (kD * materialcolor() / PI + spec) * dotNL * lightColor;
 	}
 
 	return color;
@@ -101,23 +105,21 @@ void main()
 	vec3 N = normalize(inNormal);
 	vec3 V = normalize(ubo.camPos - inWorldPos);
 
-	float roughness = material.roughness;
-
-	// Add striped pattern to roughness based on vertex position
-#ifdef ROUGHNESS_PATTERN
-	roughness = max(roughness, step(fract(inWorldPos.y * 2.02), 0.5));
-#endif
 
 	// Specular contribution
 	vec3 Lo = vec3(0.0);
 	for (int i = 0; i < uboParams.lights.length(); i++) {
 		vec3 L = normalize(uboParams.lights[i].xyz - inWorldPos);
-		Lo += BRDF(L, V, N, material.metallic, roughness);
+		Lo += BRDF(L, V, N, METALLIC, ROUGHNESS);
+
 	};
+
 
 	// Combine with ambient
 	vec3 color = materialcolor() * 0.02;
 	color += Lo;
+
+    color = color / (color + vec3(1.0));
 
 	// Gamma correct
 	color = pow(color, vec3(0.4545));
