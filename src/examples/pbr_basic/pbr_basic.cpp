@@ -147,7 +147,7 @@ public:
 
 	void loadAssets()
 	{
-		std::vector<std::string> filenames = { "sphere.gltf", "teapot.gltf", "torusknot.gltf", "venus.gltf" };
+		std::vector<std::string> filenames = {"vulkanscenemodels.gltf", "sphere.gltf", "teapot.gltf", "torusknot.gltf", "venus.gltf" };
 		models.objects.resize(filenames.size());
 		for (size_t i = 0; i < filenames.size(); i++) {
 			models.objects[i].loadFromFile(getAssetPath() + "models/" + filenames[i], vulkanDevice, queue, vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::FlipY);

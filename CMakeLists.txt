@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8.0 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.8.0)
 
 set(CMAKE_MODULE_PATH  "${CMAKE_SOURCE_DIR}/cmake")
 
@@ -41,20 +41,20 @@ add_definitions(-DVK_EXAMPLE_SHADERS_DIR=\"${CMAKE_SOURCE_DIR}/src/shaders/\")
 
 # Set preprocessor defines
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNOMINMAX -D_USE_MATH_DEFINES")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}   -D_USE_MATH_DEFINES")
 
 # Clang specific stuff
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-switch-enum")
 endif()
 
-
-add_definitions(-D_CRT_SECURE_NO_WARNINGS)
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 file(GLOB SOURCE *.cpp )
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/")
 
+link_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/ktx/lib) 
 add_subdirectory(src/base)
 add_subdirectory(src/examples)
