@@ -92,7 +92,7 @@ vec3 BRDF(vec3 L, vec3 V, vec3 N, float metallic, float roughness)
 
 		vec3 kD = vec3(1.0) - F;
 		kD *= 1.0 - METALLIC;   
-		kD *= 0.0;
+	
 		color += (kD * materialcolor() / PI + spec) * dotNL * lightColor;
 	}
 
