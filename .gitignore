@@ -1,2 +1,9 @@
 .vs
 out
+.idea
+venv
+*.hdr
+*.ktx2
+*.png
+*cache*
+*.out

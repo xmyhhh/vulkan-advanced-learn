@@ -56,5 +56,6 @@ file(GLOB SOURCE *.cpp )
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/")
 
 link_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/ktx/lib) 
+add_subdirectory(src/math_exp)
 add_subdirectory(src/base)
 add_subdirectory(src/examples)

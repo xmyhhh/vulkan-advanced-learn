@@ -1,0 +1,3 @@
+[submodule "KTXCreate/gltf-IBL"]
+	path = KTXCreate/gltf-IBL
+	url = https://github.com/KhronosGroup/glTF-IBL-Sampler.git
