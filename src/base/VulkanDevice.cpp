@@ -265,6 +265,7 @@ namespace vks
 			physicalDeviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
 			physicalDeviceFeatures2.features = enabledFeatures;
 			physicalDeviceFeatures2.pNext = pNextChain;
+
 			deviceCreateInfo.pEnabledFeatures = nullptr;
 			deviceCreateInfo.pNext = &physicalDeviceFeatures2;
 		}

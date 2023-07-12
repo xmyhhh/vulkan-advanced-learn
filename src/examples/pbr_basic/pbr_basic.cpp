@@ -128,9 +128,9 @@ public:
 
 
 		textures.environmentCube.destroy();
-	/*	textures.irradianceCube.destroy();
-		textures.prefilteredCube.destroy();
-		textures.lutBrdf.destroy();*/
+		/*	textures.irradianceCube.destroy();
+			textures.prefilteredCube.destroy();
+			textures.lutBrdf.destroy();*/
 		textures.albedoMap.destroy();
 		textures.normalMap.destroy();
 		textures.aoMap.destroy();
@@ -179,7 +179,7 @@ public:
 
 	void loadAssets()
 	{
-		std::vector<std::string> filenames = {"sphere.gltf", "teapot.gltf", "torusknot.gltf", "venus.gltf" };
+		std::vector<std::string> filenames = { "sphere.gltf", "teapot.gltf", "torusknot.gltf", "venus.gltf" };
 
 		models.objects.resize(filenames.size());
 		for (size_t i = 0; i < filenames.size(); i++) {
@@ -380,6 +380,8 @@ public:
 			VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
+			vkCmdSetLineWidth(drawCmdBuffers[i], 2);
+
 			// Skybox
 			//if (displaySkybox)
 			{
@@ -406,7 +408,7 @@ public:
 				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::vec3), &pos);
 				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(glm::vec3), sizeof(Material::PushBlock), &mat);
 				models.objects[models.objectIndex].draw(drawCmdBuffers[i]);
-			}
+		}
 #else
 			for (uint32_t y = 0; y < GRID_DIM; y++) {
 				for (uint32_t x = 0; x < GRID_DIM; x++) {
@@ -424,8 +426,8 @@ public:
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
 			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
-		}
 	}
+}
 
 
 	void updateUniformBuffers()
@@ -450,6 +452,11 @@ public:
 		uboParams.lights[3] = glm::vec4(p, -p * 0.5f, -p, 1.0f);
 
 		memcpy(uniformBuffers.params.mapped, &uboParams, sizeof(uboParams));
+	}
+
+	void getEnabledFeatures() {
+		enabledFeatures.fillModeNonSolid = true;
+		enabledFeatures.wideLines = true;
 	}
 
 	//UI
