@@ -3,6 +3,8 @@
 layout (location = 0) in vec3 inWorldPos;
 layout (location = 1) in vec3 inNormal;
 layout (location = 2) in vec2 inUV;
+layout (location = 3) in vec4 inTangent;
+
 
 layout (binding = 0) uniform UBO 
 {
@@ -14,6 +16,8 @@ layout (binding = 0) uniform UBO
 
 layout (binding = 1) uniform UBOShared {
 	vec4 lights[4];
+	float exposure;
+	float gamma;
 } uboParams;
 
 layout (binding = 5) uniform sampler2D albedoMap;
@@ -111,12 +115,10 @@ void main()
 	for (int i = 0; i < uboParams.lights.length(); i++) {
 		vec3 L = normalize(uboParams.lights[i].xyz - inWorldPos);
 		Lo += BRDF(L, V, N, METALLIC, ROUGHNESS);
-
 	};
 
-
 	// Combine with ambient
-	vec3 color = materialcolor() * 0.02;
+	vec3 color = materialcolor() * 0.2;
 	color += Lo;
 
     color = color / (color + vec3(1.0));
@@ -125,6 +127,4 @@ void main()
 	color = pow(color, vec3(0.4545));
 
 	outColor = vec4(color, 1.0);
-
-	
 }
