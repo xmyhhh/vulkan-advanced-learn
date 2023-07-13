@@ -5,7 +5,7 @@
 [$$float3\quad L = 2 * dot ( V , N ) * N - V$$](https://blog.csdn.net/yinhun2012/article/details/79466517)
 
 ### 1.2 Change Of Basis
-Suppose that a finite-dimensional vector space $S$ possesses a basis $B=\left\lbrace b_{1}, \ldots, b_{K}\right\}$.
+Suppose that a finite-dimensional vector space $S$ possesses a basis $B=\left\lbrace b_{1}, \ldots, b_{K}\right\rbrace$.
 
 Then, any vector $sin S$ can be written as a linear combination of the basis: $s=\sigma_{1} b_{1}+\ldots+\sigma_{K} b_{K}$
 
@@ -13,7 +13,7 @@ Then, any vector $sin S$ can be written as a linear combination of the basis: $s
 <img src="./pics/change-of-basis.png" width="60%">
 </div>
 
-Suppose that we have a second basis $C=\left\lbrace c_{1}, \ldots, c_{K}\right\}$
+Suppose that we have a second basis $C=\left\lbrace c_{1}, \ldots, c_{K}\right\rbrace $
 
 how do we transform a coordinate vector $[s]_{B}$ into a vector $[s]_{C}$ of coordinates with respect to the new basis?
 
