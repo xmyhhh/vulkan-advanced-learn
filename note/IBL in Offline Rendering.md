@@ -104,3 +104,7 @@ irradiance = PI * irradiance * (1.0 / float(nrSamples));
 solving the integral requires us to sample the environment map from not just one direction, but all possible directions $\omega_i$ over the hemisphere $Ω$
 
  #### 2.3.2 Environment BRDF
+
+ $$
+ \int_{\Omega} f_{r}\left(p, \omega_{i}, \omega_{o}\right) n \cdot \omega_{i} d \omega_{i}=\int_{\Omega} f_{r}\left(p, \omega_{i}, \omega_{o}\right) \frac{F\left(\omega_{o}, h\right)}{F\left(\omega_{o}, h\right)} n \cdot \omega_{i} d \omega_{i}
+ $$
