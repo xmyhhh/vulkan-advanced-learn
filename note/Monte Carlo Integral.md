@@ -1,7 +1,7 @@
-## The Inverse Transform Method
+## 1. The Inverse Transform Method
 Inverse transform sampling is a method for generating random numbers from any probability distribution by using its inverse cumulative distribution function.
 
-### Continuous Distributions Sampling
+### 1.1 Continuous Distributions Sampling
 The cumulative distribution function(CDF) for a random variable $X$ represents:
 $$
 F_X(x)=P(X \leq x)
@@ -11,10 +11,10 @@ We can sample variable $X$ by two step:
 * Generate $U∼uniform(0,1)$
 * Let $X=F^{−1}X(U)$
 
-### Discrete Distributions Sampling
+### 1.2 Discrete Distributions Sampling
 [read hear](https://stephens999.github.io/fiveMinuteStats/inverse_transform_sampling.html)
 
-## Sampling GGX
+## 2.1 Sampling GGX
 Basic form of GGX represents:
 $$
 D(h)=\frac{\alpha^2}{\pi\left(\left(\alpha^2-1\right) \cos ^2 \theta+1\right)^2}
@@ -69,7 +69,7 @@ $$
 
 
 ```glsl
-//code of Sampling GGX
+//example code of Sampling GGX
 //float2 Xi is a uniformly distributed random value
 float3 ImportanceSampleGGX( float2 Xi, float Roughness, float3 N )
 {
@@ -96,8 +96,8 @@ float3 ImportanceSampleGGX( float2 Xi, float Roughness, float3 N )
 }
 ```
 
-## Sampling Beckmann
+## 2.2 Sampling Beckmann
 [read hear](https://stephens999.github.io/fiveMinuteStats/inverse_transform_sampling.html)
 
-## Sampling Blinn
+## 2.3 Sampling Blinn
 [read hear](https://stephens999.github.io/fiveMinuteStats/inverse_transform_sampling.html)

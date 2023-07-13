@@ -1,5 +1,6 @@
 
-## 1. Prerequisite
+<h1 align='center' >1. Prerequisite</h1>
+
 ### 1.1 Standard Reflection Equation
 [$$float3\quad L = 2 * dot ( V , N ) * N - V$$](https://blog.csdn.net/yinhun2012/article/details/79466517)
 
@@ -16,13 +17,29 @@ Suppose that we have a second basis $C=\left\{c_{1}, \ldots, c_{K}\right\}$
 
 how do we transform a coordinate vector $[s]_{B}$ into a vector $[s]_{C}$ of coordinates with respect to the new basis?
 
-## 2. Reflectance Equation
+### 1.3 Gamma Correct
+Generally the art provides Albedo etc. maps in Gamma Color Space, i.e. the color values of Albedo etc. maps are carried out 1/2.2 times (approximated) with respect to Linear Color Space
+
+Therefore, in the shader code, we need to convert the albedo texture to pad space prior to computation, which can be accomplished in the following way：
+```
+#define ALBEDO pow(texture(albedoMap, inUV).rgb, vec3(2.2))
+```
+and in the end of shader do gamma correction
+```glsl
+color = pow(color, vec3(1.0f / 2.2));
+outColor = vec4(color, 1.0);
+```
+
+<h1 align='center' >2. Image Based Lighting</h1>
+
+### 2.1 Reflectance Equation
+
 $$L_o\left(p, \omega_o\right)=\int_{\Omega}\left(k_d \frac{c}{\pi}+k_s \frac{D F G}{4\left(\omega_o \cdot n\right)\left(\omega_i \cdot n\right)}\right) L_i\left(p, \omega_i\right) n \cdot \omega_i d \omega_i$$
 
 the diffuse $k_d$ and specular $k_s$ term of the BRDF are independent from each other and we can split the integral in two:
 $$L_o\left(p, \omega_o\right)=\int_{\Omega}\left(k_d \frac{c}{\pi}\right) L_i\left(p, \omega_i\right) n \cdot \omega_i d \omega_i+\int_{\Omega}\left(k_s \frac{D F G}{4\left(\omega_o \cdot n\right)\left(\omega_i \cdot n\right)}\right) L_i\left(p, \omega_i\right) n \cdot \omega_i d \omega_i$$
 
-### 2.1 Diffuse Integral Part(Irradiance Map)
+### 2.2 Diffuse Integral Part(Irradiance Map)
 the color $c$ ,the refraction ratio $k_d$ and $π$ are constant over the integral, we can move the constant term out of the diffuse integral:
 $$L_{o\_diffuse}\left(p, \omega_o\right)=k_d \frac{c}{\pi} \int_{\Omega} L_i\left(p, \omega_i\right) n \cdot \omega_i d \omega_i$$
 
@@ -32,11 +49,11 @@ with this knowledge, we can calculate or pre-compute a cubemap that stores in ea
 we can respecte above diffuse integral equation as spherical coordinate:
 $$L_{o}\left(p, \phi_{o}, \theta_{o}\right)=k_{d} \frac{c}{\pi} \int_{\phi=0}^{2 \pi} \int_{\theta=0}^{\frac{1}{2} \pi} L_{i}\left(p, \phi_{i}, \theta_{i}\right) \cos (\theta) \sin (\theta) d \phi d \theta$$
 
-based on the Riemann sum, we can solve the integral by discrete sum:
+based on the [Riemann sum](https://en.wikipedia.org/wiki/Riemann_sum), we can solve the integral by discrete sum:
 $$
 \begin{aligned}
-L_{o}\left(p, \phi_{o}, \theta_{o}\right) &  =k_{d} \frac{c }{\pi} \frac{2\pi}{n 1} \frac{ \frac{1 }{2} \pi}{n 2} \sum_{\phi=0}^{n 1} \sum_{\theta=0}^{n 2} L_{i}\left(p, \phi_{i}, \theta_{i}\right) \cos (\theta) \sin (\theta) d \phi d \theta \\ 
-& =k_{d} \frac{c \pi}{n 1 n 2} \sum_{\phi=0}^{n 1} \sum_{\theta=0}^{n 2} L_{i}\left(p, \phi_{i}, \theta_{i}\right) \cos (\theta) \sin (\theta) d \phi d \theta
+L_{o}\left(p, \phi_{o}, \theta_{o}\right) &  =k_{d} \frac{c }{\pi}  \sum_{\phi=0}^{n 1} \sum_{\theta=0}^{n 2} L_{i}\left(p, \phi_{i}, \theta_{i}\right) \cos (\theta) \sin (\theta) \frac{2\pi}{n 1} \frac{ \frac{1 }{2} \pi}{n 2} \\ 
+& =k_{d} \frac{c \pi}{n 1 n 2} \sum_{\phi=0}^{n 1} \sum_{\theta=0}^{n 2} L_{i}\left(p, \phi_{i}, \theta_{i}\right) \cos (\theta) \sin (\theta)
 \end{aligned}
 $$
 
@@ -75,8 +92,8 @@ irradiance = PI * irradiance * (1.0 / float(nrSamples));
 </div>
 
 
-### 2.2 Specular Integral Part
-#### 2.2.1 Pre-Filter Environment Map
+### 2.3 Specular Integral Part
+#### 2.3.1 Pre-Filter Environment Map
  given any direction vector $\omega_i$, we can get the scene's radiance by environment cubemap:
 
  ```glsl
@@ -85,4 +102,4 @@ irradiance = PI * irradiance * (1.0 / float(nrSamples));
 
 solving the integral requires us to sample the environment map from not just one direction, but all possible directions $\omega_i$ over the hemisphere $Ω$
 
- #### 2.2.2Environment BRDF
+ #### 2.3.2 Environment BRDF
