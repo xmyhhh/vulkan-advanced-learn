@@ -1,8 +1,9 @@
 
 <h1 align='center' >1. Prerequisite</h1>
 
-### 1.1 Standard Reflection Equation
-[$$float3\quad L = 2 * dot ( V , N ) * N - V$$](https://blog.csdn.net/yinhun2012/article/details/79466517)
+### 1.1 [Standard Reflection Equation](https://blog.csdn.net/yinhun2012/article/details/79466517)
+$$float3\quad L = 2 * dot ( V , N ) * N - V$$
+
 
 ### 1.2 Change Of Basis
 Suppose that a finite-dimensional vector space $S$ possesses a basis $B=\left\lbrace b_{1}, \ldots, b_{K}\right\rbrace$.
