@@ -1,18 +1,82 @@
-### Standard Reflection Equation
+
+## 1. Prerequisite
+### 1.1 Standard Reflection Equation
 [$$float3\quad L = 2 * dot ( V , N ) * N - V$$](https://blog.csdn.net/yinhun2012/article/details/79466517)
-### Reflectance Equation
+
+### 1.2 Change Of Basis
+Suppose that a finite-dimensional vector space $S$ possesses a basis $B=\left\{b_{1}, \ldots, b_{K}\right\}$.
+
+Then, any vector $sin S$ can be written as a linear combination of the basis: $s=\sigma_{1} b_{1}+\ldots+\sigma_{K} b_{K}$
+
+<div align=center>
+<img src="./pics/change-of-basis.png" width="60%">
+</div>
+
+Suppose that we have a second basis $C=\left\{c_{1}, \ldots, c_{K}\right\}$
+
+how do we transform a coordinate vector $[s]_{B}$ into a vector $[s]_{C}$ of coordinates with respect to the new basis?
+
+## 2. Reflectance Equation
 $$L_o\left(p, \omega_o\right)=\int_{\Omega}\left(k_d \frac{c}{\pi}+k_s \frac{D F G}{4\left(\omega_o \cdot n\right)\left(\omega_i \cdot n\right)}\right) L_i\left(p, \omega_i\right) n \cdot \omega_i d \omega_i$$
 
 the diffuse $k_d$ and specular $k_s$ term of the BRDF are independent from each other and we can split the integral in two:
 $$L_o\left(p, \omega_o\right)=\int_{\Omega}\left(k_d \frac{c}{\pi}\right) L_i\left(p, \omega_i\right) n \cdot \omega_i d \omega_i+\int_{\Omega}\left(k_s \frac{D F G}{4\left(\omega_o \cdot n\right)\left(\omega_i \cdot n\right)}\right) L_i\left(p, \omega_i\right) n \cdot \omega_i d \omega_i$$
 
-### Diffuse Integral Part(Irradiance Map)
+### 2.1 Diffuse Integral Part(Irradiance Map)
 the color $c$ ,the refraction ratio $k_d$ and $π$ are constant over the integral, we can move the constant term out of the diffuse integral:
 $$L_{o\_diffuse}\left(p, \omega_o\right)=k_d \frac{c}{\pi} \int_{\Omega} L_i\left(p, \omega_i\right) n \cdot \omega_i d \omega_i$$
 
-With this knowledge, we can calculate or pre-compute a cubemap that stores in each sample direction. This pre-computed cubemap can be thought of as the pre-computed sum of all indirect diffuse light of the scene hitting some surface aligned along direction $\omega_o$ and is known as an irradiance map.
-![本地路径](./pics/ibl_irradiance_map.png "相对路径演示") 
-### Pre-Filter Environment Map
+with this knowledge, we can calculate or pre-compute a cubemap that stores in each sample direction. This pre-computed cubemap can be thought of as the pre-computed sum of all indirect diffuse light of the scene hitting some surface aligned along direction $\omega_o$ and is known as an irradiance map.
+
+
+we can respecte above diffuse integral equation as spherical coordinate:
+$$L_{o}\left(p, \phi_{o}, \theta_{o}\right)=k_{d} \frac{c}{\pi} \int_{\phi=0}^{2 \pi} \int_{\theta=0}^{\frac{1}{2} \pi} L_{i}\left(p, \phi_{i}, \theta_{i}\right) \cos (\theta) \sin (\theta) d \phi d \theta$$
+
+based on the Riemann sum, we can solve the integral by discrete sum:
+$$
+\begin{aligned}
+L_{o}\left(p, \phi_{o}, \theta_{o}\right) &  =k_{d} \frac{c }{\pi} \frac{2\pi}{n 1} \frac{ \frac{1 }{2} \pi}{n 2} \sum_{\phi=0}^{n 1} \sum_{\theta=0}^{n 2} L_{i}\left(p, \phi_{i}, \theta_{i}\right) \cos (\theta) \sin (\theta) d \phi d \theta \\ 
+& =k_{d} \frac{c \pi}{n 1 n 2} \sum_{\phi=0}^{n 1} \sum_{\theta=0}^{n 2} L_{i}\left(p, \phi_{i}, \theta_{i}\right) \cos (\theta) \sin (\theta) d \phi d \theta
+\end{aligned}
+$$
+
+```glsl
+//example code of  Irradiance Map 
+vec3 irradiance = vec3(0.0);  
+vec3 up    = vec3(0.0, 1.0, 0.0);
+vec3 right = normalize(cross(up, normal));
+        up = normalize(cross(normal, right));
+
+float sampleDelta = 0.025;
+float nrSamples = 0.0; 
+for(float phi = 0.0; phi < 2.0 * PI; phi += sampleDelta)
+{
+    for(float theta = 0.0; theta < 0.5 * PI; theta += sampleDelta)
+    {
+        // spherical to cartesian (in tangent space)
+        // vec3 tangentSample表示切空间上某一方向
+        vec3 tangentSample = vec3(sin(theta) * cos(phi),  sin(theta) * sin(phi), cos(theta));
+        // tangent space to world
+        vec3 sampleVec = tangentSample.x * right + tangentSample.y * up + tangentSample.z * N; 
+
+        irradiance += texture(environmentMap, sampleVec).rgb * cos(theta) * sin(theta);
+        nrSamples++;
+    }
+}
+irradiance = PI * irradiance * (1.0 / float(nrSamples));
+```
+<div align=center>
+<img src="./pics/tangentSample.jpg" width="60%">
+</div>
+<!-- ![irradiance map](./pics/tangentSample.jpg =100x100)  -->
+
+<div align=center>
+<img src="./pics/ibl_irradiance_map.png" width="60%">
+</div>
+
+
+### 2.2 Specular Integral Part
+#### 2.2.1 Pre-Filter Environment Map
  given any direction vector $\omega_i$, we can get the scene's radiance by environment cubemap:
 
  ```glsl
@@ -21,4 +85,4 @@ With this knowledge, we can calculate or pre-compute a cubemap that stores in ea
 
 solving the integral requires us to sample the environment map from not just one direction, but all possible directions $\omega_i$ over the hemisphere $Ω$
 
- ### Environment BRDF
+ #### 2.2.2Environment BRDF

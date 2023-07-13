@@ -20,6 +20,7 @@ layout (binding = 1) uniform UBOShared {
 	float gamma;
 } uboParams;
 
+layout (binding = 2) uniform samplerCube IrradianceMap;
 layout (binding = 5) uniform sampler2D albedoMap;
 layout (binding = 6) uniform sampler2D normalMap;
 layout (binding = 7) uniform sampler2D aoMap;
@@ -36,7 +37,7 @@ const float PI = 3.14159265359;
 
 vec3 materialcolor()
 {
-	return texture(albedoMap, inUV).rgb;
+	return ALBEDO;
 }
 
 // Normal Distribution function --------------------------------------
@@ -64,6 +65,11 @@ vec3 F_Schlick(float cosTheta, float metallic)
 	vec3 F0 = mix(vec3(0.04), materialcolor(), metallic); // * material.specular
 	vec3 F = F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0); 
 	return F;    
+}
+
+vec3 F_SchlickR(float cosTheta, vec3 F0, float roughness)
+{
+	return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
 // Specular BRDF composition --------------------------------------------
@@ -109,16 +115,26 @@ void main()
 	vec3 N = normalize(inNormal);
 	vec3 V = normalize(ubo.camPos - inWorldPos);
 
+	vec3 irradiance = texture(IrradianceMap, N).rgb;
+	vec3 diffuse = irradiance * materialcolor() ;	
 
 	// Specular contribution
 	vec3 Lo = vec3(0.0);
 	for (int i = 0; i < uboParams.lights.length(); i++) {
 		vec3 L = normalize(uboParams.lights[i].xyz - inWorldPos);
-		Lo += BRDF(L, V, N, METALLIC, ROUGHNESS);
+		//Lo += BRDF(L, V, N, METALLIC, ROUGHNESS);
 	};
 
+	// diffuse contribution
+	vec3 F0 = vec3(0.04); 
+	F0 = mix(F0, ALBEDO, METALLIC);
+	vec3 F = F_SchlickR(max(dot(N, V), 0.0), F0, ROUGHNESS);
+	vec3 kD = 1.0 - F;
+	kD *= 1.0 - METALLIC;	
+	Lo += kD * diffuse;
+
 	// Combine with ambient
-	vec3 color = materialcolor() * 0.2;
+	vec3 color = materialcolor() * 0.02;
 	color += Lo;
 
     color = color / (color + vec3(1.0));
