@@ -1,5 +1,6 @@
 
 Change of variables in the probability density
+
 $$
 \left|p_{Y}(y) d y\right|=\left|p_{X}(x) d x\right|
 $$
