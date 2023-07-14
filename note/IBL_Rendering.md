@@ -123,13 +123,13 @@ $$
 
 With the Fresnel-Schlick approximation gives us $F = F_{0}+\left(1-F_{0}\right)\left(1-\omega_{o} \cdot h\right)^{5}$ and a constant radiance $L_i$ of 1.0, we can get:
 
+
 $$
 \begin{aligned}
 L_o\left(p, \omega_o\right) & \approx 
 \frac{1}{N} \sum_{k=1}^{N} \frac{F G L_{i}\left(p, \omega_{i_k}\right) (\omega_{o} \cdot h) }{\left(n \cdot h\right) \left(\omega_{o} \cdot n\right)} \\
 & = \frac{1}{N} \sum_{k=1}^{N} \frac{G  (\omega_{o} \cdot h) }{\left(n \cdot h\right) \left(\omega_{o} \cdot n\right)} (F_{0}+\left(1-F_{0}\right)\left(1-\omega_{o} \cdot h\right)^{5}) \\
 & = \frac{1}{N} \sum_{k=1}^{N} \frac{G  (\omega_{o} \cdot h) }{\left(n \cdot h\right) \left(\omega_{o} \cdot n\right)} (F_0 (1-(1-\omega_o\cdot h)^5)+(1-\omega_o \cdot h)^5) \\
-
 & = F_0 { \color{Red}   \frac{1}{N} \sum_{k=1}^{N} \frac{G  (\omega_{o} \cdot h) }{\left(n \cdot h\right) \left(\omega_{o} \cdot n\right)} (1-(1-\omega_o\cdot h)^5) }  + { \color{Green}   \frac{1}{N} \sum_{k=1}^{N} \frac{G  (\omega_{o} \cdot h) }{\left(n \cdot h\right) \left(\omega_{o} \cdot n\right)} (1-\omega_o\cdot h)^5 }\\
 \end{aligned}
 $$
