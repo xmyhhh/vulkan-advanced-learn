@@ -94,6 +94,9 @@ irradiance = PI * irradiance * (1.0 / float(nrSamples));
 
 
 ### 2.3 Specular Integral Part
+$$L_{o}\left(p, \omega_{o}\right)=\int_{\Omega} L_{i}\left(p, \omega_{i}\right) d \omega_{i} * \int_{\Omega} f_{r}\left(p, \omega_{i}, \omega_{o}\right) n \cdot \omega_{i} d \omega_{i}$$
+
+
 #### 2.3.1 Pre-Filter Environment Map
  given any direction vector $\omega_i$, we can get the scene's radiance by environment cubemap:
 

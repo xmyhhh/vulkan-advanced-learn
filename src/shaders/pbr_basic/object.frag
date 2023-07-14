@@ -21,6 +21,9 @@ layout (binding = 1) uniform UBOShared {
 } uboParams;
 
 layout (binding = 2) uniform samplerCube IrradianceMap;
+layout (binding = 3) uniform sampler2D BRDFLUT;
+layout (binding = 4) uniform samplerCube prefilteredEnvMap;
+
 layout (binding = 5) uniform sampler2D albedoMap;
 layout (binding = 6) uniform sampler2D normalMap;
 layout (binding = 7) uniform sampler2D aoMap;
@@ -109,35 +112,54 @@ vec3 BRDF(vec3 L, vec3 V, vec3 N, float metallic, float roughness)
 	return color;
 }
 
+vec3 getPrefilteredReflection(vec3 R, float roughness)
+{
+	const float MAX_REFLECTION_LOD = 9.0; // todo: param/const
+	float lod = roughness * MAX_REFLECTION_LOD;
+	float lodf = floor(lod);
+	float lodc = ceil(lod);
+	vec3 a = textureLod(prefilteredEnvMap, R, lodf).rgb;
+	vec3 b = textureLod(prefilteredEnvMap, R, lodc).rgb;
+	return mix(a, b, lod - lodf);
+}
+
 // ----------------------------------------------------------------------------
 void main()
 {		  
 	vec3 N = normalize(inNormal);
 	vec3 V = normalize(ubo.camPos - inWorldPos);
+	vec3 R = reflect(-V, N); 
 
-	vec3 irradiance = texture(IrradianceMap, N).rgb;
-	vec3 diffuse = irradiance * materialcolor() ;	
-
-	// Specular contribution
-	vec3 Lo = vec3(0.0);
-	for (int i = 0; i < uboParams.lights.length(); i++) {
-		vec3 L = normalize(uboParams.lights[i].xyz - inWorldPos);
-		//Lo += BRDF(L, V, N, METALLIC, ROUGHNESS);
-	};
-
-	// diffuse contribution
 	vec3 F0 = vec3(0.04); 
 	F0 = mix(F0, ALBEDO, METALLIC);
+
+	vec2 brdflut = texture(BRDFLUT, vec2(max(dot(N, V), 0.0), ROUGHNESS)).rg;
+	vec3 irradiance = texture(IrradianceMap, N).rgb;
+	vec3 reflection = getPrefilteredReflection(R, ROUGHNESS).rgb;
+
+	vec3 Lo = vec3(0.0);
+
+	// Specular contribution: Light
+	//for (int i = 0; i < uboParams.lights.length(); i++) {
+		//vec3 L = normalize(uboParams.lights[i].xyz - inWorldPos);
+		//Lo += BRDF(L, V, N, METALLIC, ROUGHNESS);
+	//};
+
+	// Diffuse contribution
+	vec3 diffuse = irradiance * materialcolor() ;
 	vec3 F = F_SchlickR(max(dot(N, V), 0.0), F0, ROUGHNESS);
 	vec3 kD = 1.0 - F;
 	kD *= 1.0 - METALLIC;	
 	Lo += kD * diffuse;
 
-	// Combine with ambient
-	vec3 color = materialcolor() * 0.02;
-	color += Lo;
+	// Specular contribution: Sky
+	Lo += reflection * (F * brdflut.x + brdflut.y);
 
-    color = color / (color + vec3(1.0));
+	// Combine with ambient
+	
+	Lo += materialcolor() * 0.02;
+
+    vec3 color = Lo / (Lo + vec3(1.0));
 
 	// Gamma correct
 	color = pow(color, vec3(0.4545));
