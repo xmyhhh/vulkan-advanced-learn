@@ -48,6 +48,7 @@ The reason about this, consider a roughness close to zero, which corresponds to 
 ### 2.2 Importance Sampling in Specular Part of Reflectance Equation
 
 In order to integrate the specular part of our radiance equation, we’ll need to use importance sampling, using the following equation:
+
 $$
 L_o\left(p, \omega_o\right) =
 k_s \int_{\Omega}\left(\frac{D F G}{4\left(\omega_o \cdot n\right)\left(\omega_i \cdot n\right)}\right) L_i\left(p, \omega_i\right) n \cdot \omega_i d \omega_i \approx 
