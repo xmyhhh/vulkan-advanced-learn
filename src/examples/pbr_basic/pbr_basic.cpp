@@ -194,7 +194,7 @@ public:
 		uint32_t glTFLoadingFlags = vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::FlipY;
 		models.skybox.loadFromFile(getAssetPath() + "models/cube.gltf", vulkanDevice, queue, glTFLoadingFlags);
 
-		textures.environmentCube.loadFromFile(getAssetPath() + "textures/ktx2/aircraft_workshop_01_4k.ktx2", VK_FORMAT_R16G16B16A16_SFLOAT, vulkanDevice, queue);
+		textures.environmentCube.loadFromFile(getAssetPath() + "textures/ktx2/kloppenheim_02_4k.ktx2", VK_FORMAT_R16G16B16A16_SFLOAT, vulkanDevice, queue);
 		textures.albedoMap.loadFromFile(getAssetPath() + "textures/ktx2/rustediron2_basecolor.ktx2", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
 		textures.normalMap.loadFromFile(getAssetPath() + "models/cerberus/normal.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
 		textures.aoMap.loadFromFile(getAssetPath() + "models/cerberus/ao.ktx", VK_FORMAT_R8_UNORM, vulkanDevice, queue);

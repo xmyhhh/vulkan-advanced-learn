@@ -61,7 +61,7 @@ def evaluate_paired_img(res_path, res_name, res_name_ext, output_path):
 max_workers = 1
 output_path = "C:/Users/xmy/Desktop/vulkan-learn-advanced/assets/textures/ktx2/"
 res_folder = "C:/Users/xmy/Desktop/vulkan-learn-advanced/assets/textures/ktx2"
-CLI_PATH = "C:/Users/xmy/Desktop/vulkan-learn-advanced/KTXCreate/glTF-IBL-Sampler/out/build/x64-Debug"
+CLI_PATH = "C:/Users/xmy/Desktop/vulkan-learn-advanced/KTXCreate/glTF-IBL/out/build/x64-Debug"
 executor = ThreadPoolExecutor(max_workers=max_workers)
 
 os.makedirs(os.path.join('../evaluate', output_path), exist_ok=True)
