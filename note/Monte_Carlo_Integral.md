@@ -12,6 +12,7 @@ $$I=\int_{\Omega} f(x) \mathrm{d} x \approx  \frac{1}{N} \sum_{i=1}^{N} \frac{f\
 Here, N independent samples $x_{0}, x_{1}, \ldots x_{n}$  are generated according to some property density function $p(x)$
 
 The estimator is unbiased. In other words, the average of the estimator is exactly the integral we target on.
+
 $$
 \begin{aligned}
 E\left[F_{N}\right] & =E\left[\frac{1}{N} \sum_{i=1}^{N} \frac{f\left(x_{i}\right)}{p\left(x_{i}\right)}\right] \\
@@ -22,6 +23,7 @@ E\left[F_{N}\right] & =E\left[\frac{1}{N} \sum_{i=1}^{N} \frac{f\left(x_{i}\righ
 $$
 
 Just having the average value equaling to the integral doesn’t solve the problem, it is necessary to make sure that it converge to the right one as the number of samples grows. The variance approaches to zero if N keeps growing.
+
 $$
 \begin{aligned}
 V\left[F_{N}\right] & =V\left[\frac{1}{N} \sum_{i=1}^{N} \frac{f\left(x_{i}\right)}{p\left(x_{i}\right)}\right] \\
@@ -141,6 +143,7 @@ $$\mathrm{P_h}(\phi \mid \theta)=\int_0^\phi \frac{1}{2 \pi} d \phi^{\prime}=\fr
 
 
 Let’s calculate the CDF of $\theta$ next:
+
 $$
 \begin{aligned}
 F_h(\theta) & =\int_0^\theta \frac{2 \alpha^2 \cos (t) \sin (t)}{\left(\cos ^2 t\left(\alpha^2-1\right)+1\right)^2} d t \\

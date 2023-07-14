@@ -51,6 +51,7 @@ we can respecte above diffuse integral equation as spherical coordinate:
 $$L_{o}\left(p, \phi_{o}, \theta_{o}\right)=k_{d} \frac{c}{\pi} \int_{\phi=0}^{2 \pi} \int_{\theta=0}^{\frac{1}{2} \pi} L_{i}\left(p, \phi_{i}, \theta_{i}\right) \cos (\theta) \sin (\theta) d \phi d \theta$$
 
 based on the [Riemann sum](https://en.wikipedia.org/wiki/Riemann_sum), we can solve the integral by discrete sum:
+
 $$
 \begin{aligned}
 L_{o}\left(p, \phi_{o}, \theta_{o}\right) &  =k_{d} \frac{c }{\pi}  \sum_{\phi=0}^{n 1} \sum_{\theta=0}^{n 2} L_{i}\left(p, \phi_{i}, \theta_{i}\right) \cos (\theta) \sin (\theta) \frac{2\pi}{n 1} \frac{ \frac{1 }{2} \pi}{n 2} \\ 
@@ -109,13 +110,12 @@ solving the integral requires us to sample the environment map from not just one
  #### 2.3.2 Environment BRDF
 
 In note [Monte Carlo Integral](./Monte_Carlo_Integral.md), we get Importance Sampling in Specular Part of Reflectance Equation as:
+
 $$
 \begin{aligned}
 L_o\left(p, \omega_o\right) & \approx 
 \frac{1}{N} \sum_{k=1}^{N} \frac{\left(\frac{D F G}{4\left(\omega_{o} \cdot n\right)\left(\omega_{i_k} \cdot n\right)}\right) L_{i}\left(p, \omega_{i_k}\right) n \cdot \omega_{i_k}}{PDF(\omega_{i_k})} \\
-
 & = \frac{1}{N} \sum_{k=1}^{N} \frac{\left(\frac{D F G}{4\left(\omega_{o} \cdot n\right)\left(\omega_{i_k} \cdot n\right)}\right) L_{i}\left(p, \omega_{i_k}\right) n \cdot \omega_{i_k}}{  \frac{D(h) (n \cdot h)}{4(\omega_{o} \cdot h)} } \\
-
 & = \frac{1}{N} \sum_{k=1}^{N} \frac{F G L_{i}\left(p, \omega_{i_k}\right) (\omega_{o} \cdot h) }{\left(n \cdot h\right) \left(\omega_{o} \cdot n\right)}
 \end{aligned}
 $$
