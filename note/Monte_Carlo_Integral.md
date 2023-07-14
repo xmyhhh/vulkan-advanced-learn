@@ -68,12 +68,14 @@ p_h(h)=D(h)(n \cdot h)=\frac{\alpha^2(n \cdot h)}{\pi\left(\left(\alpha^2-1\righ
 $$
 
 If we want our PDF to be used for $\omega_{i}$ instead of the half vector ℎ h then we’ll need to include the Jacobian of the transformation from half vector to $\omega_{i}$, this can be represented as [the following equation](http://www.cs.cornell.edu/~srm/publications/EGSR07-btdf.pdf):
+
 $$
 \begin{aligned}
 J(\mathbf{h}) & =\frac{1}{4(\omega_{o} \cdot h)} \\
 \operatorname{PDF}\left(\omega_{o}, \omega_{i_k}\right) & =\frac{D(h) (n \cdot h)}{4(\omega_{o} \cdot h)}
 \end{aligned}
 $$
+
 <div align=center>
 <img src="./pics/Jacobian_1.PNG" width="50%">
 <img src="./pics/Jacobian_2.PNG" width="50%">
