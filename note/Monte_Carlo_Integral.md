@@ -72,7 +72,7 @@ If we want our PDF to be used for $\omega_{i}$ instead of the half vector ℎ h 
 $$
 \begin{aligned}
 J(\mathbf{h}) & =\frac{1}{4(\omega_{o} \cdot h)} \\
-\operatorname{PDF}\left(\omega_{o}, \omega_{i_k}\right) & =\frac{D(h) (n \cdot h)}{4(\omega_{o} \cdot h)}
+PDF\left(\omega_{o}, \omega_{i_k}\right) & =\frac{D(h) (n \cdot h)}{4(\omega_{o} \cdot h)}
 \end{aligned}
 $$
 
