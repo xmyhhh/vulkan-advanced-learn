@@ -105,6 +105,7 @@ solving the integral requires us to sample the environment map from not just one
 
  #### 2.3.2 Environment BRDF
 
+In note [Monte Carlo Integral](./Monte_Carlo_Integral.md), we get Importance Sampling in Specular Part of Reflectance Equation as:
 $$
 \begin{aligned}
 L_o\left(p, \omega_o\right) & \approx 
