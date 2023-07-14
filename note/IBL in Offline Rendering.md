@@ -59,7 +59,7 @@ L_{o}\left(p, \phi_{o}, \theta_{o}\right) &  =k_{d} \frac{c }{\pi}  \sum_{\phi=0
 $$
 
 ```glsl
-//example code of  Irradiance Map 
+//example code of Irradiance Map 
 vec3 irradiance = vec3(0.0);  
 vec3 up    = vec3(0.0, 1.0, 0.0);
 vec3 right = normalize(cross(up, normal));
@@ -105,6 +105,79 @@ solving the integral requires us to sample the environment map from not just one
 
  #### 2.3.2 Environment BRDF
 
- $$
- \int_{\Omega} f_{r}\left(p, \omega_{i}, \omega_{o}\right) n \cdot \omega_{i} d \omega_{i}=\int_{\Omega} f_{r}\left(p, \omega_{i}, \omega_{o}\right) \frac{F\left(\omega_{o}, h\right)}{F\left(\omega_{o}, h\right)} n \cdot \omega_{i} d \omega_{i}
- $$
+$$
+\begin{aligned}
+L_o\left(p, \omega_o\right) & \approx 
+\frac{1}{N} \sum_{k=1}^{N} \frac{\left(\frac{D F G}{4\left(\omega_{o} \cdot n\right)\left(\omega_{i_k} \cdot n\right)}\right) L_{i}\left(p, \omega_{i_k}\right) n \cdot \omega_{i_k}}{PDF(\omega_{i_k})} \\
+
+& = \frac{1}{N} \sum_{k=1}^{N} \frac{\left(\frac{D F G}{4\left(\omega_{o} \cdot n\right)\left(\omega_{i_k} \cdot n\right)}\right) L_{i}\left(p, \omega_{i_k}\right) n \cdot \omega_{i_k}}{  \frac{D(h) (n \cdot h)}{4(\omega_{o} \cdot h)} } \\
+
+& = \frac{1}{N} \sum_{k=1}^{N} \frac{F G L_{i}\left(p, \omega_{i_k}\right) (\omega_{o} \cdot h) }{\left(n \cdot h\right) \left(\omega_{o} \cdot n\right)}
+\end{aligned}
+$$
+
+
+With the Fresnel-Schlick approximation gives us $F = F_{0}+\left(1-F_{0}\right)\left(1-\omega_{o} \cdot h\right)^{5}$ and a constant radiance $L_i$ of 1.0, we can get:
+
+$$
+\begin{aligned}
+L_o\left(p, \omega_o\right) & \approx 
+\frac{1}{N} \sum_{k=1}^{N} \frac{F G L_{i}\left(p, \omega_{i_k}\right) (\omega_{o} \cdot h) }{\left(n \cdot h\right) \left(\omega_{o} \cdot n\right)} \\
+& = \frac{1}{N} \sum_{k=1}^{N} \frac{G  (\omega_{o} \cdot h) }{\left(n \cdot h\right) \left(\omega_{o} \cdot n\right)} (F_{0}+\left(1-F_{0}\right)\left(1-\omega_{o} \cdot h\right)^{5}) \\
+& = \frac{1}{N} \sum_{k=1}^{N} \frac{G  (\omega_{o} \cdot h) }{\left(n \cdot h\right) \left(\omega_{o} \cdot n\right)} (F_0 (1-(1-\omega_o\cdot h)^5)+(1-\omega_o \cdot h)^5) \\
+
+& = F_0 { \color{Red}   \frac{1}{N} \sum_{k=1}^{N} \frac{G  (\omega_{o} \cdot h) }{\left(n \cdot h\right) \left(\omega_{o} \cdot n\right)} (1-(1-\omega_o\cdot h)^5) }  + { \color{Green}   \frac{1}{N} \sum_{k=1}^{N} \frac{G  (\omega_{o} \cdot h) }{\left(n \cdot h\right) \left(\omega_{o} \cdot n\right)} (1-\omega_o\cdot h)^5 }\\
+\end{aligned}
+$$
+
+In the end, We take both the angle NdotV and the roughness as input, generate a pre-compute vector(the red and green part) 
+
+
+
+  ```glsl
+  //example code of BRDF_LUT
+vec2 IntegrateBRDF(float NdotV, float roughness)
+{
+    //假设V的长度是1，并且在xz平面上
+    vec3 V;
+    V.x = sqrt(1.0 - NdotV*NdotV);
+    V.y = 0.0;
+    V.z = NdotV;
+
+    float A = 0.0;
+    float B = 0.0;
+
+    vec3 N = vec3(0.0, 0.0, 1.0);
+
+    const uint SAMPLE_COUNT = 1024u;
+    for(uint i = 0u; i < SAMPLE_COUNT; ++i)
+    {
+        vec2 Xi = Hammersley(i, SAMPLE_COUNT);
+        vec3 H  = ImportanceSampleGGX(Xi, N, roughness);
+        vec3 L  = normalize(2.0 * dot(V, H) * H - V);
+
+        float NdotL = max(L.z, 0.0);
+        float NdotH = max(H.z, 0.0);
+        float VdotH = max(dot(V, H), 0.0);
+
+        if(NdotL > 0.0)
+        {
+            float G = GeometrySmith(N, V, L, roughness);
+            float G_Vis = (G * VdotH) / (NdotH * NdotV);
+            float Fc = pow(1.0 - VdotH, 5.0);
+
+            A += (1.0 - Fc) * G_Vis;
+            B += Fc * G_Vis;
+        }
+    }
+    A /= float(SAMPLE_COUNT);
+    B /= float(SAMPLE_COUNT);
+    return vec2(A, B);
+}
+// ----------------------------------------------------------------------------
+void main() 
+{
+    vec2 integratedBRDF = IntegrateBRDF(TexCoords.x, TexCoords.y);
+    FragColor = integratedBRDF;
+}
+ ```
