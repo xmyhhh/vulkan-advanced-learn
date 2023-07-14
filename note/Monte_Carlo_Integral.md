@@ -116,19 +116,21 @@ D(h)=\frac{\alpha^2}{\pi\left(\left(\alpha^2-1\right) \cos ^2 \theta+1\right)^2}
 $$
 Here, $\cos\theta = dot(N, H)$ and $H = normalize (V + L) $.
 
-
 The PDF respecting solid angle represents(As suggested in the Disney
 course notes):
+
 $$
 p_h(h)=\frac{\alpha^2\cos\theta}{\pi\left(\left(\alpha^2-1\right) \cos ^2 \theta+1\right)^2}
 $$
 
 We can respecting above equation as spherical coordinate:
+
 $$
 p_h(\theta, \phi)=\frac{\alpha^2 \cos \theta \sin \theta}{\pi\left(\left(\alpha^2-1\right) \cos ^2 \theta+1\right)^2}
 $$
 
 And we can calculate marginal density function $p_h(\theta)$ by integral on $\phi$:
+
 $$
 p_h(\theta)=\int_0^{2 \pi} p_h(\theta, \phi) d \phi=\frac{2 \alpha^2 \cos \theta \sin \theta}{\left(\left(\alpha^2-1\right) \cos ^2 \theta+1\right)^2}
 $$
@@ -138,8 +140,6 @@ $$\mathrm{p_h}(\phi \mid \theta)=\frac{\mathrm{p_h}(\theta, \phi)}{\mathrm{p}_\t
 
 And the CDF of $\phi$ writes:
 $$\mathrm{P_h}(\phi \mid \theta)=\int_0^\phi \frac{1}{2 \pi} d \phi^{\prime}=\frac{1}{2 \pi} \phi$$
-
-
 
 Let’s calculate the CDF of $\theta$ next:
 
@@ -160,7 +160,7 @@ $$u=\mathrm{P}(\phi \mid \theta)=\frac{1}{2 \pi} \phi \quad \Rightarrow \quad \p
 The inversion for $\theta$:
 
 $$
-\theta=\arccos \sqrt{\frac{1-v}{v\left(\alpha^2-1\right)+1}} \operatorname{or} \theta=\arctan \left(\alpha \sqrt{\frac{v}{1-v}}\right)
+\theta=\arccos \sqrt{\frac{1-v}{v\left(\alpha^2-1\right)+1}} \space\space\space or \space\space\space \theta=\arctan \left(\alpha \sqrt{\frac{v}{1-v}}\right)
 $$
 
 
