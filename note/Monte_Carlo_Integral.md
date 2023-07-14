@@ -62,6 +62,7 @@ As NDF can be normalized by:
 $$\int_{\Omega} D(h)(n \cdot h) d \omega_{h}=1$$
 
 Thus, we can use the following equation as PDF:
+
 $$
 p_h(h)=D(h)(n \cdot h)=\frac{\alpha^2(n \cdot h)}{\pi\left(\left(\alpha^2-1\right) (n \cdot h) ^2 +1\right)^2}
 $$
