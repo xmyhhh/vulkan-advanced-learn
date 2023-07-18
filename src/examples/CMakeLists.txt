@@ -1,5 +1,6 @@
 set(EXAMPLES
 	pbr_basic
+	shadow
 )
 
 function(buildExample EXAMPLE_NAME)

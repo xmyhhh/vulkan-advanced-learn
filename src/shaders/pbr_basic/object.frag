@@ -34,9 +34,13 @@ layout (location = 0) out vec4 outColor;
 
 const float PI = 3.14159265359;
 
-#define ALBEDO pow(texture(albedoMap, inUV).rgb, vec3(2.2))
-#define ROUGHNESS texture(roughnessMap, inUV).r
-#define METALLIC texture(metallicMap, inUV).r
+//#define ALBEDO pow(texture(albedoMap, inUV).rgb, vec3(2.2))
+//#define ROUGHNESS texture(roughnessMap, inUV).r
+//#define METALLIC texture(metallicMap, inUV).r
+
+#define ALBEDO vec3(0.8,0.8,0.8)
+#define ROUGHNESS 0.01
+#define METALLIC 0.95
 
 vec3 materialcolor()
 {
