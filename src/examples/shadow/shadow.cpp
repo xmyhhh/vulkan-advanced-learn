@@ -32,10 +32,12 @@ public:
 	} offscreenPass;
 
 	struct {
+
 		glm::mat4 projection;
 		glm::mat4 view;
 		glm::mat4 model;
-		glm::mat4 depthBiasMVP;
+		glm::vec3 camPos;
+		glm::mat4 lightSpaceMatrix;
 		glm::vec4 lightPos;
 		// Used for depth map visualization
 		float zNear;
@@ -54,7 +56,7 @@ public:
 	} pipelines;
 
 	glm::vec3 lightPos = glm::vec3();
-
+	glm::vec3 objectPos = glm::vec3(0.0f, 0.0f, 0.0f);
 	VkPipelineLayout pipelineLayout;
 
 	VkDescriptorSetLayout descriptorSetLayout;
@@ -105,8 +107,9 @@ public:
 		prepareOffscreenFramebuffer();
 
 		setupDescriptorSetLayout();
-		preparePipelines();
 		setupDescriptorSets();
+		preparePipelines();
+
 		buildCommandBuffers();
 		prepared = true;
 	}
@@ -139,10 +142,11 @@ public:
 		// Map persistent
 		VK_CHECK_RESULT(uniformBuffers.offscreen.map());
 		VK_CHECK_RESULT(uniformBuffers.scene.map());
-
-		updateLight();
 		updateUniformBufferOffscreen();
 		updateUniformBuffers();
+		updateLight();
+		
+		
 	}
 
 	void prepareOffscreenRenderpass()
@@ -254,8 +258,6 @@ public:
 		sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
 		VK_CHECK_RESULT(vkCreateSampler(device, &sampler, nullptr, &offscreenPass.depthSampler));
 
-		
-
 		// Create frame buffer
 		VkFramebufferCreateInfo fbufCreateInfo = vks::initializers::framebufferCreateInfo();
 		fbufCreateInfo.renderPass = offscreenPass.renderPass;
@@ -271,17 +273,18 @@ public:
 	void updateLight()
 	{
 		// Animate the light source
-		lightPos.x = cos(glm::radians(timer * 360.0f)) * 40.0f;
-		lightPos.y = -50.0f + sin(glm::radians(timer * 360.0f)) * 20.0f;
-		lightPos.z = 25.0f + sin(glm::radians(timer * 360.0f)) * 5.0f;
+		lightPos.x = 15.0f;
+		lightPos.y = 15.0f;
+		lightPos.z = 15.0f;
 	}
-
+	/*glm::mat4 ObjectPos = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));*/
 	void updateUniformBufferOffscreen()
 	{
 		// Matrix from light's point of view
-		glm::mat4 depthProjectionMatrix = glm::perspective(glm::radians(lightFOV), 1.0f, zNear, zFar);
+		//glm::mat4 depthProjectionMatrix = glm::perspective(glm::radians(lightFOV), 1.0f, zNear, zFar);
+		glm::mat4 depthProjectionMatrix = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, zNear, zFar);
 		glm::mat4 depthViewMatrix = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0, 1, 0));
-		glm::mat4 depthModelMatrix = glm::mat4(1.0f);
+		glm::mat4 depthModelMatrix = glm::translate(glm::mat4(1.0f), objectPos);
 
 		uboOffscreenVS.depthMVP = depthProjectionMatrix * depthViewMatrix * depthModelMatrix;
 		memcpy(uniformBuffers.offscreen.mapped, &uboOffscreenVS, sizeof(uboOffscreenVS));
@@ -291,9 +294,10 @@ public:
 	{
 		uboVSscene.projection = camera.matrices.perspective;
 		uboVSscene.view = camera.matrices.view;
-		uboVSscene.model = glm::mat4(1.0f);
+		uboVSscene.model = glm::translate(glm::mat4(1.0f), objectPos);
+		uboVSscene.camPos = camera.position;
 		uboVSscene.lightPos = glm::vec4(lightPos, 1.0f);
-		uboVSscene.depthBiasMVP = uboOffscreenVS.depthMVP;
+		uboVSscene.lightSpaceMatrix = uboOffscreenVS.depthMVP  * glm::inverse(uboVSscene.model);
 		uboVSscene.zNear = zNear;
 		uboVSscene.zFar = zFar;
 		memcpy(uniformBuffers.scene.mapped, &uboVSscene, sizeof(uboVSscene));
@@ -311,8 +315,6 @@ public:
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
 		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
 		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout));
-
-
 
 		std::vector<VkDescriptorPoolSize> poolSizes = {
 		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3),

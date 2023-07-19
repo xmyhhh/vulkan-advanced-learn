@@ -58,9 +58,10 @@ void main()
 	vec3 N = normalize(inNormal);
 	vec3 L = normalize(inLightVec);
 	vec3 V = normalize(inViewVec);
+	vec3 H = normalize(- L + V);
 	vec3 R = normalize(-reflect(L, N));
 	vec3 diffuse = max(dot(N, L), ambient) * inColor;
-
-	outFragColor = vec4(diffuse * shadow, 1.0);
+	vec3 specular = max(pow(dot(R, N),32), 0) * inColor;
+	outFragColor = vec4((specular + diffuse) * shadow + vec3(0.2), 1.0);
 
 }

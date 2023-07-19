@@ -10,6 +10,7 @@ layout (binding = 0) uniform UBO
 	mat4 projection;
 	mat4 view;
 	mat4 model;
+	vec3 camPos;
 	mat4 lightSpace;
 	vec4 lightPos;
 	float zNear;
@@ -35,11 +36,13 @@ void main()
 
 	gl_Position = ubo.projection * ubo.view * ubo.model * vec4(inPos.xyz, 1.0);
 	
-    vec4 pos = ubo.model * vec4(inPos, 1.0);
-    outNormal = mat3(ubo.model) * inNormal;
-    outLightVec = normalize(ubo.lightPos.xyz - inPos);
-    outViewVec = -pos.xyz;			
+    vec4 pos = ubo.model * vec4(inPos, 1.0);  //world space pos
+    outNormal = mat3(ubo.model) * inNormal;   //world space normal
+    outLightVec = normalize(ubo.lightPos.xyz - pos.xyz);
+    outViewVec = ubo.camPos - pos.xyz;			
 
 	outShadowCoord = ( biasMat * ubo.lightSpace * ubo.model ) * vec4(inPos, 1.0);	
 }
+
+
 
