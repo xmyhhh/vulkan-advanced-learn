@@ -55,13 +55,14 @@ void main()
 {	
 	float shadow = (enablePCF == 1) ? filterPCF(inShadowCoord / inShadowCoord.w) : textureProj(inShadowCoord / inShadowCoord.w, vec2(0.0));
 
-	vec3 N = normalize(inNormal);
-	vec3 L = normalize(inLightVec);
-	vec3 V = normalize(inViewVec);
-	vec3 H = normalize(- L + V);
-	vec3 R = normalize(-reflect(L, N));
+	vec3 N = (inNormal);
+	vec3 L = (inLightVec);
+	vec3 V = (inViewVec);
+	vec3 H = normalize(L + V);
+	//vec3 R = reflect(-L, N);
 	vec3 diffuse = max(dot(N, L), ambient) * inColor;
-	vec3 specular = max(pow(dot(R, N),32), 0) * inColor;
-	outFragColor = vec4((specular + diffuse) * shadow + vec3(0.2), 1.0);
+	vec3 specular = max(pow(dot(H, N), 32), 0) * inColor * 0.5f;
+
+	outFragColor = vec4((specular + diffuse) * shadow + vec3(0.05), 1.0);
 
 }
