@@ -44,6 +44,7 @@ void main()
     outViewVec = normalize(ubo.camPos.xyz - pos.xyz);			
 
 	outShadowCoord = (ubo.lightSpaceMatrix * pushConsts.model ) * vec4(inPos, 1.0);	
+	outShadowCoord = outShadowCoord / outShadowCoord.w;
 }
 
 

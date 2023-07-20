@@ -1,10 +1,6 @@
 <h1 align='center' >1. Prerequisite</h1>
 
 ### 1.1 Directional Shadow Mapping
-
-#### 1.1.1 Light space transform
-
-
 **Step 1:**
 All rays of a directional light source are parallel. Therefore, we will use the orthographic projection matrix for the light source
 
@@ -36,7 +32,38 @@ depthStencilStateCI.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
 rasterizationStateCI.depthBiasEnable = VK_TRUE;
 ```
 
+
 **Step 3:**
+Set Depth Bias
+
+The depth bias depends on three parameters:
+* **depthBiasSlopeFactor**: scales the maximum depth slope m of the polygon
+* **depthBiasConstantFactor**: scales the parameter r of the depth attachment
+* **depthBiasClamp**: the scaled terms are summed to produce a value which is then clamped to a minimum or maximum value specified by depthBiasClamp
+
+**Step 4:**
+Set Depth Texture Wrapping
+<div align=center>
+<img src="./pics/texture_wrapping.png" width="60%">
+</div>
+```c
+VkSamplerCreateInfo sampler = vks::initializers::samplerCreateInfo();
+sampler.magFilter = shadowmap_filter;
+sampler.minFilter = shadowmap_filter;
+sampler.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+sampler.addressModeV = sampler.addressModeU;
+sampler.addressModeW = sampler.addressModeU;
+sampler.mipLodBias = 0.0f;
+sampler.maxAnisotropy = 1.0f;
+sampler.minLod = 0.0f;
+sampler.maxLod = 1.0f;
+sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+```
+
+
+**Step 4:**
 Rendering shadow map in vertex stage
 ```glsl
 //example code of Directional Shadow Mapping Vertex Shader(pass 1)
@@ -52,7 +79,7 @@ void main()
 }  
 ```
 
-**Step 4:**
+**Step 5:**
 Rendering shadow in next pass
 ```glsl
 //example code of Directional Shadow Mapping Vertex Shader(pass 2)
