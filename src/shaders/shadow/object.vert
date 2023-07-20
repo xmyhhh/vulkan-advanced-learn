@@ -9,7 +9,6 @@ layout (binding = 0) uniform UBO
 {
 	mat4 projection;
 	mat4 view;
-
 	vec4 camPos;
 	mat4 lightSpaceMatrix;
 	vec4 lightPos;
@@ -44,7 +43,7 @@ void main()
     outLightVec = normalize(ubo.lightPos.xyz - pos.xyz);
     outViewVec = normalize(ubo.camPos.xyz - pos.xyz);			
 
-	outShadowCoord = (biasMat * ubo.lightSpaceMatrix * pushConsts.model ) * vec4(inPos, 1.0);	
+	outShadowCoord = (ubo.lightSpaceMatrix * pushConsts.model ) * vec4(inPos, 1.0);	
 }
 
 

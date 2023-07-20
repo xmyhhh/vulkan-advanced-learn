@@ -60,13 +60,15 @@ layout (binding = 0) uniform UBO
 {
 	mat4 projection;
 	mat4 view;
-	mat4 model;
 	vec4 camPos;
 	mat4 lightSpaceMatrix;
 	vec4 lightPos;
-	float zNear;
-	float zFar;
+
 } ubo;
+
+layout(push_constant) uniform PushConsts {
+	mat4 model;
+}pushConsts;
 
 layout (location = 0) out vec3 outNormal;
 layout (location = 1) out vec3 outColor;
@@ -103,46 +105,99 @@ const mat4 biasMat = mat4(
 
 void main() 
 {
-	outColor = inColor;
-	gl_Position = ubo.projection * ubo.view * ubo.model * vec4(inPos.xyz, 1.0);
-	
-    vec4 pos = ubo.model * vec4(inPos, 1.0);  //world space pos
-    outNormal = normalize(mat3(ubo.model) * inNormal);   //world space normal
+    outColor = inColor;
+    gl_Position = ubo.projection * ubo.view * pushConsts.model * vec4(inPos.xyz, 1.0);
+
+    vec4 pos = pushConsts.model * vec4(inPos, 1.0);  //world space pos
+    outNormal = normalize(mat3(pushConsts.model) * inNormal);   //world space normal
 
     outLightVec = normalize(ubo.lightPos.xyz - pos.xyz);
-    outViewVec = normalize(ubo.camPos.xyz - pos.xyz);			
+    outViewVec = normalize(ubo.camPos.xyz - pos.xyz);
 
-	outShadowCoord = (biasMat * ubo.lightSpaceMatrix * ubo.model ) * vec4(inPos, 1.0);	
+    //texture sample is in the range [0,1], and outShadowCoord is in the range [-1, 1]
+    //we need transform outShadowCoord by outShadowCoord.xy = outShadowCoord.xy * 0.5 + 0.5
+    //This could be done by multiply biasMat in vertex shader
+    outShadowCoord = (biasMat * ubo.lightSpaceMatrix * pushConsts.model ) * vec4(inPos, 1.0);
 }
 ```
 
 The range of depths in the depth buffer is 0.0 to 1.0 in Vulkan, where 1.0 lies at the far view plane and 0.0 at the near view plane. 
+
+When we output a clip-space vertex position to gl_Position in the vertex shader, Vulkan/OpenGL automatically does a perspective divide e.g. transform clip-space coordinates in the range [-w,w] to [-1,1] by dividing the x, y and z component by the vector's w component. 
+
+As the clip-space FragPosLightSpace is not passed to the fragment shader through gl_Position, we have to do this perspective divide ourselves
+
+When using an orthographic projection matrix the w component of a vertex remains untouched so this step is actually quite meaningless. However, it is necessary when using perspective projection so keeping this line ensures it works with both projection matrices.
+
 ```glsl
 //example code of Directional Shadow Mapping Fragment Shader(pass 2)
-#version 330 core
-layout (location = 0) in vec3 aPos;
-layout (location = 1) in vec3 aNormal;
-layout (location = 2) in vec2 aTexCoords;
+#version 450
 
-out VS_OUT {
-    vec3 FragPos;
-    vec3 Normal;
-    vec2 TexCoords;
-    vec4 FragPosLightSpace;
-} vs_out;
+layout (binding = 1) uniform sampler2D shadowMap;
 
-uniform mat4 projection;
-uniform mat4 view;
-uniform mat4 model;
-uniform mat4 lightSpaceMatrix;
+layout (location = 0) in vec3 inNormal;
+layout (location = 1) in vec3 inColor;
+layout (location = 2) in vec3 inViewVec;
+layout (location = 3) in vec3 inLightVec;
+layout (location = 4) in vec4 inShadowCoord;
 
-void main()
-{    
-    vs_out.FragPos = vec3(model * vec4(aPos, 1.0));
-    vs_out.Normal = transpose(inverse(mat3(model))) * aNormal;
-    vs_out.TexCoords = aTexCoords;
-    vs_out.FragPosLightSpace = lightSpaceMatrix * vec4(vs_out.FragPos, 1.0);
-    gl_Position = projection * view * vec4(vs_out.FragPos, 1.0);
+layout (constant_id = 0) const int enablePCF = 0;
+layout (location = 0) out vec4 outFragColor;
+
+#define ambient 0.1
+
+float textureProj(vec4 shadowCoord, vec2 off)
+{
+	float shadow = 1.0;
+	if ( shadowCoord.z > -1.0 && shadowCoord.z < 1.0 ) 
+	{
+        //You can use xyzw, rgba (for colors), or stpq (for texture coordinates)
+		float dist = texture( shadowMap, shadowCoord.st + off ).r;
+		if ( shadowCoord.w > 0.0 && dist < shadowCoord.z ) 
+		{
+			shadow = ambient;
+		}
+	}
+	return shadow;
 }
+
+float filterPCF(vec4 sc)
+{
+	ivec2 texDim = textureSize(shadowMap, 0);
+	float scale = 1.5;
+	float dx = scale * 1.0 / float(texDim.x);
+	float dy = scale * 1.0 / float(texDim.y);
+
+	float shadowFactor = 0.0;
+	int count = 0;
+	int range = 1;
+	
+	for (int x = -range; x <= range; x++)
+	{
+		for (int y = -range; y <= range; y++)
+		{
+			shadowFactor += textureProj(sc, vec2(dx*x, dy*y));
+			count++;
+		}
+	
+	}
+	return shadowFactor / count;
+}
+
+void main() 
+{	
+	float shadow = (enablePCF == 1) ? filterPCF(inShadowCoord / inShadowCoord.w) : textureProj(inShadowCoord / inShadowCoord.w, vec2(0.0));
+
+	vec3 N = (inNormal);
+	vec3 L = (inLightVec);
+	vec3 V = (inViewVec);
+	vec3 H = normalize(L + V);
+
+	vec3 diffuse = max(dot(N, L), ambient) * inColor;
+	vec3 specular = max(pow(dot(H, N), 32), 0) * inColor * 0.25f;
+
+	outFragColor = vec4((specular + diffuse) * shadow + vec3(0.25) * inColor, 1.0);
+}
+
 ```
 
