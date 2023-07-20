@@ -61,8 +61,8 @@ void main()
 	vec3 H = normalize(L + V);
 
 	vec3 diffuse = max(dot(N, L), ambient) * inColor;
-	vec3 specular = max(pow(dot(H, N), 32), 0) * inColor * 0.5f;
+	vec3 specular = max(pow(dot(H, N), 32), 0) * inColor * 0.25f;
 
-	outFragColor = vec4((specular + diffuse) * shadow + vec3(0.05), 1.0);
+	outFragColor = vec4((specular + diffuse) * shadow + vec3(0.25) * inColor, 1.0);
 
 }

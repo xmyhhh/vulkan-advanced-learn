@@ -119,9 +119,10 @@ public:
 		const uint32_t glTFLoadingFlags = vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::PreMultiplyVertexColors | vkglTF::FileLoadingFlags::FlipY;
 
 		//Step 1:define model 
-		std::vector obj_to_load = { "models/plane.gltf", "models/sphere.gltf" };
-		std::vector<glm::vec3> obj_pos = { glm::vec3(0, 0, 0), glm::vec3(0, -10, 0) };
+		std::vector obj_to_load = { "models/plane.gltf", "models/glowsphere.gltf" };
+		std::vector<glm::vec3> obj_pos = { glm::vec3(0, 0, 0), glm::vec3(0, -1, 0) };
 
+		std::vector<glm::vec3> obj_size = { glm::vec3(5, 5, 5), glm::vec3(0.3, 0.3, 0.3) };
 		//Step 2:define light 
 		scene.dir_lights.resize(1);
 		scene.dir_lights[0].model.loadFromFile(getAssetPath() + "models/cube.gltf", vulkanDevice, queue, glTFLoadingFlags);
@@ -131,6 +132,8 @@ public:
 		//Step 3:define scene 
 		scene.objects.resize(obj_to_load.size());
 		for (int i = 0; i < obj_to_load.size(); i++) {
+			scene.objects[i].pos = obj_pos[i];
+			scene.objects[i].size = obj_size[i];
 			scene.objects[i].model.loadFromFile(getAssetPath() + obj_to_load[i], vulkanDevice, queue, glTFLoadingFlags);
 		}
 
@@ -393,9 +396,6 @@ public:
 		VkPipelineDynamicStateCreateInfo dynamicStateCI = vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables.data(), dynamicStateEnables.size(), 0);
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
-
-
-
 		VkGraphicsPipelineCreateInfo pipelineCI = vks::initializers::pipelineCreateInfo(pipelineLayout, renderPass, 0);
 		pipelineCI.pInputAssemblyState = &inputAssemblyStateCI;
 		pipelineCI.pRasterizationState = &rasterizationStateCI;
@@ -503,6 +503,7 @@ public:
 
 				for (auto& scene_object : scene.objects) {
 					glm::mat4 model = glm::translate(glm::mat4(1.0f), scene_object.pos);
+					model = glm::scale(model, scene_object.size);
 					vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushBlock), &model);
 					scene_object.model.draw(drawCmdBuffers[i]);
 				}
@@ -554,6 +555,7 @@ public:
 
 					for (auto& scene_object : scene.objects) {
 						glm::mat4 model = glm::translate(glm::mat4(1.0f), scene_object.pos);
+						model = glm::scale(model, scene_object.size);
 						vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushBlock), &model);
 						scene_object.model.draw(drawCmdBuffers[i]);
 					}
@@ -607,6 +609,13 @@ public:
 	virtual void OnUpdateUIOverlay(vks::UIOverlay* overlay)
 	{
 		if (overlay->header("Settings")) {
+
+			overlay->text("Object_y");
+			if (overlay->sliderFloat("##b", &scene.objects[1].pos[1], 0.0f, 20.0f)) {
+				scene.objects[1].pos[1] = -scene.objects[1].pos[1];
+				updateUniformBuffers();
+			}
+
 
 		}
 	}

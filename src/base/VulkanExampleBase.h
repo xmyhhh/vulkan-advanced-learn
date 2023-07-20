@@ -90,6 +90,7 @@ public:
 struct SceneObject {
 	vkglTF::Model model;
 	glm::vec3 pos;
+	glm::vec3 size;
 
 public:
 	~SceneObject() {
