@@ -9,13 +9,16 @@ layout (binding = 0) uniform UBO
 {
 	mat4 projection;
 	mat4 view;
-	mat4 model;
+
 	vec4 camPos;
-	mat4 lightSpace;
+	mat4 lightSpaceMatrix;
 	vec4 lightPos;
-	float zNear;
-	float zFar;
+
 } ubo;
+
+layout(push_constant) uniform PushConsts {
+	mat4 model;
+}pushConsts;
 
 layout (location = 0) out vec3 outNormal;
 layout (location = 1) out vec3 outColor;
@@ -32,17 +35,16 @@ const mat4 biasMat = mat4(
 void main() 
 {
 	outColor = inColor;
-	outNormal = inNormal;
 
-	gl_Position = ubo.projection * ubo.view * ubo.model * vec4(inPos.xyz, 1.0);
+	gl_Position = ubo.projection * ubo.view * pushConsts.model * vec4(inPos.xyz, 1.0);
 	
-    vec4 pos = ubo.model * vec4(inPos, 1.0);  //world space pos
-    outNormal = normalize(mat3(ubo.model) * inNormal);   //world space normal
+    vec4 pos = pushConsts.model * vec4(inPos, 1.0);  //world space pos
+    outNormal = normalize(mat3(pushConsts.model) * inNormal);   //world space normal
 
     outLightVec = normalize(ubo.lightPos.xyz - pos.xyz);
     outViewVec = normalize(ubo.camPos.xyz - pos.xyz);			
 
-	outShadowCoord = ( biasMat * ubo.lightSpace * ubo.model ) * vec4(inPos, 1.0);	
+	outShadowCoord = (biasMat * ubo.lightSpaceMatrix * pushConsts.model ) * vec4(inPos, 1.0);	
 }
 
 

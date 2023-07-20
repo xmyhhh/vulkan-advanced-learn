@@ -10,23 +10,16 @@ layout (binding = 0) uniform UBO
 {
 	mat4 projection;
 	mat4 view;
-	mat4 model;
+	vec4 camPos;
 	mat4 lightSpace;
 	vec4 lightPos;
-	float zNear;
-	float zFar;
+
 } ubo;
 
-float LinearizeDepth(float depth)
-{
-  float n = ubo.zNear;
-  float f = ubo.zFar;
-  float z = depth;
-  return (2.0 * n) / (f + n - z * (f - n));	
-}
+
 
 void main() 
 {
 	float depth = texture(samplerColor, inUV).r;
-	outFragColor = vec4(vec3(1.0-LinearizeDepth(depth)), 1.0);
+	outFragColor = vec4(vec3(1.0-depth), 1.0);
 }

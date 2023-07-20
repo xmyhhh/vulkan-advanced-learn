@@ -1,5 +1,5 @@
 #include "VulkanExampleBase.h"
-#include "VulkanglTFModel.h"
+
 
 #define GRID_DIM 7
 
@@ -33,7 +33,6 @@ struct UBOParams {
 };
 
 struct Meshes {
-
 	vkglTF::Model skybox;
 	std::vector<vkglTF::Model> objects;
 	int32_t objectIndex = 0;

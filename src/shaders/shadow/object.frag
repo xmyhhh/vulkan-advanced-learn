@@ -59,7 +59,7 @@ void main()
 	vec3 L = (inLightVec);
 	vec3 V = (inViewVec);
 	vec3 H = normalize(L + V);
-	//vec3 R = reflect(-L, N);
+
 	vec3 diffuse = max(dot(N, L), ambient) * inColor;
 	vec3 specular = max(pow(dot(H, N), 32), 0) * inColor * 0.5f;
 

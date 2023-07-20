@@ -68,10 +68,46 @@
 #include "VulkanBuffer.h"
 #include "VulkanDevice.h"
 #include "VulkanTexture.h"
+#include "VulkanglTFModel.h"
 
 #include "VulkanInitializers.hpp"
 #include "camera.hpp"
 #include "benchmark.hpp"
+
+
+struct SceneDirectionalLight {
+	vkglTF::Model model;
+	glm::vec3 pos;
+	glm::vec3 diretion;
+	glm::vec3 color;
+
+public:
+	~SceneDirectionalLight() {
+		std::cout << "delet SceneDirectionalLight" << std::endl;
+	}
+};
+
+struct SceneObject {
+	vkglTF::Model model;
+	glm::vec3 pos;
+
+public:
+	~SceneObject() {
+		std::cout << "delet SceneObject" << std::endl;
+	}
+};
+
+struct Scene {
+	//vkglTF::Model skybox;
+	std::vector<SceneDirectionalLight> dir_lights;
+	std::vector<SceneObject> objects;
+public:
+	~Scene() {
+		std::cout << "delet Scene" << std::endl;
+	}
+};
+
+
 
 class VulkanExampleBase
 {

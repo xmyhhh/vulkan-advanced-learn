@@ -1,10 +1,12 @@
 #include "VulkanExampleBase.h"
-#include "VulkanglTFModel.h"
+
 
 #define GRID_DIM 7
 #define SHADOWMAP_DIM 2048
 #define DEFAULT_SHADOWMAP_FILTER VK_FILTER_LINEAR
 #define DEPTH_FORMAT VK_FORMAT_D16_UNORM
+
+
 
 
 class VulkanExample : public VulkanExampleBase
@@ -32,17 +34,19 @@ public:
 	} offscreenPass;
 
 	struct {
-
 		glm::mat4 projection;
 		glm::mat4 view;
-		glm::mat4 model;
+
 		glm::vec4 camPos;
 		glm::mat4 lightSpaceMatrix;
 		glm::vec4 lightPos;
-		// Used for depth map visualization
-		float zNear;
-		float zFar;
-	} uboVSscene;
+	} ubo_ObjectVS;
+
+	struct PushBlock {
+		glm::mat4 modelMatrix;
+	};
+
+	Scene scene;
 
 	struct {
 		glm::mat4 depthMVP;
@@ -55,16 +59,13 @@ public:
 		VkPipeline debug;
 	} pipelines;
 
-	glm::vec3 lightPos = glm::vec3();
-	glm::vec3 objectPos = glm::vec3(0.0f, 0.0f, 0.0f);
+
 	VkPipelineLayout pipelineLayout;
 
 	VkDescriptorSetLayout descriptorSetLayout;
 
-	std::vector<vkglTF::Model> scenes;
 	std::vector<std::string> sceneNames;
 
-	int32_t sceneIndex = 0;
 	float depthBiasConstant = 1.25f;
 	float depthBiasSlope = 1.75f;
 	float lightFOV = 45.0f;
@@ -92,7 +93,6 @@ public:
 
 	~VulkanExample()
 	{
-
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 	}
@@ -117,10 +117,23 @@ public:
 	void loadAssets()
 	{
 		const uint32_t glTFLoadingFlags = vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::PreMultiplyVertexColors | vkglTF::FileLoadingFlags::FlipY;
-		scenes.resize(2);
-		scenes[0].loadFromFile(getAssetPath() + "models/vulkanscene_shadow.gltf", vulkanDevice, queue, glTFLoadingFlags);
-		scenes[1].loadFromFile(getAssetPath() + "models/samplescene.gltf", vulkanDevice, queue, glTFLoadingFlags);
-		sceneNames = { "Vulkan scene", "Teapots and pillars" };
+
+		//Step 1:define model 
+		std::vector obj_to_load = { "models/plane.gltf", "models/sphere.gltf" };
+		std::vector<glm::vec3> obj_pos = { glm::vec3(0, 0, 0), glm::vec3(0, -10, 0) };
+
+		//Step 2:define light 
+		scene.dir_lights.resize(1);
+		scene.dir_lights[0].model.loadFromFile(getAssetPath() + "models/cube.gltf", vulkanDevice, queue, glTFLoadingFlags);
+		scene.dir_lights[0].pos = glm::vec3(25, -50, 15);
+		scene.dir_lights[0].diretion = glm::vec3(0, 0, 0);
+
+		//Step 3:define scene 
+		scene.objects.resize(obj_to_load.size());
+		for (int i = 0; i < obj_to_load.size(); i++) {
+			scene.objects[i].model.loadFromFile(getAssetPath() + obj_to_load[i], vulkanDevice, queue, glTFLoadingFlags);
+		}
+
 	}
 
 	void prepareUniformBuffers()
@@ -137,50 +150,38 @@ public:
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			&uniformBuffers.scene,
-			sizeof(uboVSscene)));
+			sizeof(ubo_ObjectVS)));
 
 		// Map persistent
 		VK_CHECK_RESULT(uniformBuffers.offscreen.map());
 		VK_CHECK_RESULT(uniformBuffers.scene.map());
 
-		updateLight();
 		updateUniformBufferOffscreen();
 		updateUniformBuffers();
 	}
-	void updateLight()
-	{
-		// Animate the light source
-		lightPos.x =  40.0f;
-		lightPos.y = -50.0f ;
-		lightPos.z = 25.0f;
-	}
 
-	/*glm::mat4 ObjectPos = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));*/
 	void updateUniformBufferOffscreen()
 	{
 		// Matrix from light's point of view
 		//glm::mat4 depthProjectionMatrix = glm::perspective(glm::radians(lightFOV), 1.0f, zNear, zFar);
 		glm::mat4 depthProjectionMatrix = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, zNear, zFar);
-		glm::mat4 depthViewMatrix = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0, 1, 0));
-		glm::mat4 depthModelMatrix = glm::translate(glm::mat4(1.0f), objectPos);
+		glm::mat4 depthViewMatrix = glm::lookAt(scene.dir_lights[0].pos, glm::vec3(0.0f), glm::vec3(0, 1, 0));
 
-		uboOffscreenVS.depthMVP = depthProjectionMatrix * depthViewMatrix * depthModelMatrix;
+		uboOffscreenVS.depthMVP = depthProjectionMatrix * depthViewMatrix;
 		memcpy(uniformBuffers.offscreen.mapped, &uboOffscreenVS, sizeof(uboOffscreenVS));
 	}
 
 	void updateUniformBuffers()
 	{
-		uboVSscene.projection = camera.matrices.perspective;
-		uboVSscene.view = camera.matrices.view;
-		uboVSscene.model = glm::translate(glm::mat4(1.0f), objectPos);
-		uboVSscene.camPos = glm::vec4(camera.position * -1.0f, 1.0f);
+		ubo_ObjectVS.projection = camera.matrices.perspective;
+		ubo_ObjectVS.view = camera.matrices.view;
 
-		std::cout << camera.position.x<< camera.position.y<< std::endl;
-		uboVSscene.lightPos = glm::vec4(lightPos, 1.0f);
-		uboVSscene.lightSpaceMatrix = uboOffscreenVS.depthMVP * glm::inverse(uboVSscene.model);
-		uboVSscene.zNear = zNear;
-		uboVSscene.zFar = zFar;
-		memcpy(uniformBuffers.scene.mapped, &uboVSscene, sizeof(uboVSscene));
+		ubo_ObjectVS.camPos = glm::vec4(camera.position * -1.0f, 1.0f);
+
+		ubo_ObjectVS.lightPos = glm::vec4(scene.dir_lights[0].pos, 1.0f);
+		ubo_ObjectVS.lightSpaceMatrix = uboOffscreenVS.depthMVP;
+
+		memcpy(uniformBuffers.scene.mapped, &ubo_ObjectVS, sizeof(ubo_ObjectVS));
 	}
 
 	void prepareOffscreenRenderpass()
@@ -306,16 +307,28 @@ public:
 
 
 	void setupDescriptorSetLayout() {
+
 		// Shared pipeline layout for all pipelines used in this sample
 		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
 			// Binding 0 : Vertex shader uniform buffer
-			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0),
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0),
 			// Binding 1 : Fragment shader image sampler (shadow map)
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1)
 		};
 		VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
+
+
 		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
+
+		std::vector<VkPushConstantRange> pushConstantRanges = {
+		vks::initializers::pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT, sizeof(PushBlock), 0),
+		//vks::initializers::pushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(Material::PushBlock), sizeof(glm::vec3)),
+		};
+
+		pPipelineLayoutCreateInfo.pushConstantRangeCount = 1;
+		pPipelineLayoutCreateInfo.pPushConstantRanges = pushConstantRanges.data();
+
 		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout));
 
 		std::vector<VkDescriptorPoolSize> poolSizes = {
@@ -379,6 +392,9 @@ public:
 		std::vector<VkDynamicState> dynamicStateEnables = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
 		VkPipelineDynamicStateCreateInfo dynamicStateCI = vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables.data(), dynamicStateEnables.size(), 0);
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
+
+
+
 
 		VkGraphicsPipelineCreateInfo pipelineCI = vks::initializers::pipelineCreateInfo(pipelineLayout, renderPass, 0);
 		pipelineCI.pInputAssemblyState = &inputAssemblyStateCI;
@@ -455,6 +471,7 @@ public:
 				First render pass: Generate shadow map by rendering the scene from light's POV
 			*/
 			{
+				vks::debugutils::cmdBeginLabel(drawCmdBuffers[i], "First render pass: Generate shadow map by rendering the scene from light's POV", { 1.0f, 0.78f, 0.05f, 1.0f });
 				clearValues[0].depthStencil = { 1.0f, 0 };
 
 				VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
@@ -483,9 +500,16 @@ public:
 
 				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.offscreen);
 				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.offscreen, 0, nullptr);
-				scenes[sceneIndex].draw(drawCmdBuffers[i]);
+
+				for (auto& scene_object : scene.objects) {
+					glm::mat4 model = glm::translate(glm::mat4(1.0f), scene_object.pos);
+					vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushBlock), &model);
+					scene_object.model.draw(drawCmdBuffers[i]);
+				}
 
 				vkCmdEndRenderPass(drawCmdBuffers[i]);
+
+				vks::debugutils::cmdEndLabel(drawCmdBuffers[i]);
 			}
 
 			/*
@@ -497,6 +521,7 @@ public:
 			*/
 
 			{
+				vks::debugutils::cmdBeginLabel(drawCmdBuffers[i], "Second pass: Scene rendering with applied shadow map", { 1.0f, 0.78f, 0.05f, 1.0f });
 				clearValues[0].color = defaultClearColor;
 				clearValues[1].depthStencil = { 1.0f, 0 };
 
@@ -526,21 +551,31 @@ public:
 					// Render the shadows scene
 					vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.scene, 0, nullptr);
 					vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, (filterPCF) ? pipelines.sceneShadowPCF : pipelines.sceneShadow);
-					scenes[sceneIndex].draw(drawCmdBuffers[i]);
+
+					for (auto& scene_object : scene.objects) {
+						glm::mat4 model = glm::translate(glm::mat4(1.0f), scene_object.pos);
+						vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushBlock), &model);
+						scene_object.model.draw(drawCmdBuffers[i]);
+					}
 				}
 
 				drawUI(drawCmdBuffers[i]);
 
 				vkCmdEndRenderPass(drawCmdBuffers[i]);
+
+				vks::debugutils::cmdEndLabel(drawCmdBuffers[i]);
 			}
 
 			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
+
+
 		}
 	}
 
 	void getEnabledFeatures() {
 		enabledFeatures.fillModeNonSolid = true;
 		enabledFeatures.wideLines = true;
+		enabledFeatures.samplerAnisotropy = true;
 	}
 
 	void draw()
@@ -560,7 +595,6 @@ public:
 
 		if (!paused || camera.updated)
 		{
-			updateLight();
 			updateUniformBufferOffscreen();
 		}
 	}
