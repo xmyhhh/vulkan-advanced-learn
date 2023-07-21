@@ -19,7 +19,7 @@ float textureProj(vec4 shadowCoord, vec2 off)
 	float shadow = 0.0;
 	if ( shadowCoord.z > 0.0 && shadowCoord.z < 1.0 ) 
 	{
-		shadowCoord.st = shadowCoord.st * 0.5 + 0.5;
+		
 		float dist = texture( shadowMap, shadowCoord.st + off ).r;
 		if ( dist < shadowCoord.z ) 
 		{
@@ -54,7 +54,10 @@ float filterPCF(vec4 sc)
 
 void main() 
 {	
-	float shadow = (enablePCF == 1) ? filterPCF(inShadowCoord ) : textureProj(inShadowCoord , vec2(0.0));
+	vec4 inShadowCoord_n = inShadowCoord /inShadowCoord.w;
+	inShadowCoord_n.xy = inShadowCoord_n.xy * 0.5 + 0.5;
+
+	float shadow = (enablePCF == 1) ? filterPCF(inShadowCoord_n ) : textureProj(inShadowCoord_n , vec2(0.0));
 
 	vec3 N = (inNormal);
 	vec3 L = (inLightVec);

@@ -49,7 +49,7 @@ public:
 	Scene scene;
 
 	struct {
-		glm::mat4 depthMVP;
+		glm::mat4 lightSpaceMatrix;
 	} uboOffscreenVS;
 
 	struct {
@@ -122,11 +122,11 @@ public:
 		std::vector obj_to_load = { "models/plane.gltf", "models/glowsphere.gltf" };
 		std::vector<glm::vec3> obj_pos = { glm::vec3(0, 0, 0), glm::vec3(0, -1, 0) };
 
-		std::vector<glm::vec3> obj_size = { glm::vec3(5, 5, 5), glm::vec3(0.3, 0.3, 0.3) };
+		std::vector<glm::vec3> obj_size = { glm::vec3(5, 5, 5), glm::vec3(0.6, 0.6, 0.6) };
 		//Step 2:define light 
 		scene.dir_lights.resize(1);
 		scene.dir_lights[0].model.loadFromFile(getAssetPath() + "models/cube.gltf", vulkanDevice, queue, glTFLoadingFlags);
-		scene.dir_lights[0].pos = glm::vec3(25, -50, 15);
+		scene.dir_lights[0].pos = glm::vec3(25, -14, 15);
 		scene.dir_lights[0].diretion = glm::vec3(0, 0, 0);
 
 		//Step 3:define scene 
@@ -170,7 +170,7 @@ public:
 		glm::mat4 depthProjectionMatrix = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, zNear, zFar);
 		glm::mat4 depthViewMatrix = glm::lookAt(scene.dir_lights[0].pos, glm::vec3(0.0f), glm::vec3(0, 1, 0));
 
-		uboOffscreenVS.depthMVP = depthProjectionMatrix * depthViewMatrix;
+		uboOffscreenVS.lightSpaceMatrix = depthProjectionMatrix * depthViewMatrix;
 		memcpy(uniformBuffers.offscreen.mapped, &uboOffscreenVS, sizeof(uboOffscreenVS));
 	}
 
@@ -182,7 +182,7 @@ public:
 		ubo_ObjectVS.camPos = glm::vec4(camera.position * -1.0f, 1.0f);
 
 		ubo_ObjectVS.lightPos = glm::vec4(scene.dir_lights[0].pos, 1.0f);
-		ubo_ObjectVS.lightSpaceMatrix = uboOffscreenVS.depthMVP;
+		ubo_ObjectVS.lightSpaceMatrix = uboOffscreenVS.lightSpaceMatrix;
 
 		memcpy(uniformBuffers.scene.mapped, &ubo_ObjectVS, sizeof(ubo_ObjectVS));
 	}
@@ -421,7 +421,7 @@ public:
 		pipelineCI.pVertexInputState = vkglTF::Vertex::getPipelineVertexInputState({ vkglTF::VertexComponent::Position, vkglTF::VertexComponent::UV, vkglTF::VertexComponent::Color, vkglTF::VertexComponent::Normal });
 		rasterizationStateCI.cullMode = VK_CULL_MODE_BACK_BIT;
 		shaderStages[0] = loadShader(getShadersPath() + "shadow/compile/object_vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getShadersPath() + "shadow/compile/object_frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "shadow/compile/object_pcss_frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		// Use specialization constants to select between horizontal and vertical blur
 		uint32_t enablePCF = 0;
 		VkSpecializationMapEntry specializationMapEntry = vks::initializers::specializationMapEntry(0, 0, sizeof(uint32_t));

@@ -1,6 +1,6 @@
-<h1 align='center' >1. Prerequisite</h1>
+<h1 align='center' >1. Directional Shadow Mapping</h1>
 
-### 1.1 Directional Shadow Mapping
+### 1.1 Percentage-Closer Filtering 
 **Step 1:**
 All rays of a directional light source are parallel. Therefore, we will use the orthographic projection matrix for the light source
 
@@ -228,3 +228,11 @@ void main()
 
 ```
 
+### 1.2 Percentage-Closer Soft Shadows
+<div align=center>
+<img src="./pics/pcss.png" width="40%">
+</div>
+
+$$
+w_{\text {Penumbra }}=\left(d_{\text {Receiver }}-d_{\text {Blocker }}\right) \cdot w_{\text {Light }} / d_{\text {Blocker }}
+$$
