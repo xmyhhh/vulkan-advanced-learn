@@ -34,6 +34,7 @@ function(buildExample EXAMPLE_NAME)
 	source_group("Shaders\\GLSL" FILES ${SHADERS_GLSL})
 	source_group("Shaders\\HLSL" FILES ${SHADERS_HLSL})
 	# Add optional readme / tutorial
+
 	file(GLOB README_FILES "${EXAMPLE_FOLDER}/*.md")
 	if(WIN32)
 		add_executable(${EXAMPLE_NAME} WIN32 ${MAIN_CPP} ${SOURCE} ${MAIN_HEADER} ${SHADERS_GLSL} ${SHADERS_HLSL} ${README_FILES})
@@ -42,7 +43,7 @@ function(buildExample EXAMPLE_NAME)
 		add_executable(${EXAMPLE_NAME} ${MAIN_CPP} ${SOURCE} ${MAIN_HEADER} ${SHADERS_GLSL} ${SHADERS_HLSL} ${README_FILES} )
 		target_link_libraries(${EXAMPLE_NAME} base ktx)
 	endif(WIN32)
-
+	
 	set_target_properties(${EXAMPLE_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 
 	if(RESOURCE_INSTALL_DIR)
@@ -51,12 +52,29 @@ function(buildExample EXAMPLE_NAME)
 
 	message(shaderCompile)
 
+	SET(EXAMPLE_SHADER_FOLDER ${CMAKE_CURRENT_SOURCE_DIR}/../shaders/${EXAMPLE_NAME})
+
+	file(GLOB_RECURSE GLSL_SOURCE_FILES
+		${EXAMPLE_SHADER_FOLDER}/*.*
+    )
+
 	add_custom_command(
-	TARGET  ${EXAMPLE_NAME}
-	PRE_BUILD 
+	OUTPUT ${EXAMPLE_NAME}SPV
+	DEPENDS ${GLSL_SOURCE_FILES}
 	WORKING_DIRECTORY C:/Users/xmy/Desktop/vulkan-learn-advanced/src/shaders/${EXAMPLE_NAME}
-	COMMAND cmd /c C:/Users/xmy/Desktop/vulkan-learn-advanced/src/shaders/${EXAMPLE_NAME}/compile.bat
-)
+	COMMAND cmd /c C:/Users/xmy/Desktop/vulkan-learn-advanced/src/shaders/${EXAMPLE_NAME}/compile.bat)
+
+	add_custom_target(
+		${EXAMPLE_NAME}Shaders
+		DEPENDS ${EXAMPLE_NAME}SPV
+    )
+
+	add_dependencies(${EXAMPLE_NAME} ${EXAMPLE_NAME}Shaders)
+
+	#execute_process(
+		#COMMAND cmd /c C:/Users/xmy/Desktop/vulkan-learn-advanced/src/shaders/${EXAMPLE_NAME}/compile.bat
+		#WORKING_DIRECTORY C:/Users/xmy/Desktop/vulkan-learn-advanced/src/shaders/${EXAMPLE_NAME}
+	#)
 
 endfunction(buildExample)
 

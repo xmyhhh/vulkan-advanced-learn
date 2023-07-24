@@ -148,42 +148,9 @@ const vec2 POISSON128[128] = vec2[](
     vec2(0.9608918, -0.03495717),
     vec2(0.972032, 0.2271516));
 
-float findBlocker( sampler2D shadowMap,  vec2 uv, float zReceiver ) {
-  const int radius = 40;
-  const vec2 texelSize = vec2(1.0/2048.0, 1.0/2048.0);
-  float cnt = 0.0, blockerDepth = 0.0;
-  int flag = 0;
-  for(int ns = 0;ns < SAMPLES;++ns)
-  {
-      vec2 sampleCoord = (vec2(radius) * POISSON128[ns]) * texelSize + uv;
-      float cloestDepth = texture(shadowMap, sampleCoord).r;
-      if(zReceiver - 0.002 > cloestDepth)
-      {
-        blockerDepth += cloestDepth;
-        cnt += 1.0;
-        flag = 1;
-      }
-  }
-  if(flag == 1)
-  {
-	  return blockerDepth / cnt;
-  }
-  return 1.0;
-}
 
 
-float PCF(sampler2D shadowMap, vec4 shadowCoord, float radius) {
-  const vec2 texelSize = vec2(1.0/2048.0, 1.0/2048.0);
-  float visibility = 0.0, cnt = 0.0;
-  for(int ns = 0;ns < SAMPLES;++ns)
-  {
-    vec2 sampleCoord = (vec2(radius) * POISSON128[ns]) * texelSize + shadowCoord.xy;
-    float cloestDepth = texture(shadowMap, sampleCoord).r;
-    visibility += ((shadowCoord.z - 0.001) > cloestDepth ? 1.0 : 0.0);
-    cnt += 1.0;
-  }
-  return visibility/cnt;
-}
+
 
 
 float filterPCSS(vec4 shadingPoint_Pos_LightSpace, float ShadowMapBias)
@@ -195,33 +162,28 @@ float filterPCSS(vec4 shadingPoint_Pos_LightSpace, float ShadowMapBias)
     }
 
 	//Step 1: Blocker search: getting the average blocker depth in a certain region(计算遮挡物和阴影接受物的平均距离)
-
+{
 	//The size of the search region depends on the light size and the receiver’s distance from the light source.
 	float sumAverageBlockerDistances = 0.001f;
     int sumBlockerNum = 0;
 	float dReceiver = shadingPoint_Pos_LightSpace.z;
     float searchRange = 40;
+    for (int i = 0; i < SAMPLES; ++i){
 
-{
+            vec2 offset = POISSON128[i] * searchRange * texelSize;
+            float shadowMapDepth = texture(shadowMap, shadingPoint_Pos_LightSpace.xy + offset).r;
 
-for (int i = 0; i < SAMPLES; ++i){
-
-        vec2 offset = POISSON128[i] * searchRange * texelSize;
-        float shadowMapDepth = texture(shadowMap, shadingPoint_Pos_LightSpace.xy + offset).r;
-
-        if(shadowMapDepth < dReceiver ){        //如果要渲染的片源被挡住，就记录被挡住block高度
-            sumAverageBlockerDistances += shadowMapDepth;
-            sumBlockerNum++;
+            if(shadowMapDepth < dReceiver ){        //如果要渲染的片源被挡住，就记录被挡住block高度
+                sumAverageBlockerDistances += shadowMapDepth;
+                sumBlockerNum++;
+            }
+	     }
+        if(sumBlockerNum > 0){
+           sumAverageBlockerDistances = sumAverageBlockerDistances / sumBlockerNum;
         }
-	 }
-
-    if(sumBlockerNum > 0){
-       sumAverageBlockerDistances = sumAverageBlockerDistances / sumBlockerNum;
-    }
-    else{
-        return 0;
-    }
-
+        else{
+            return 0;
+        }
 }
     //sumAverageBlockerDistances = findBlocker(shadowMap, shadingPoint_Pos_LightSpace.xy, shadingPoint_Pos_LightSpace.z);
 
@@ -276,4 +238,5 @@ void main()
 
 	outFragColor = vec4((specular + diffuse) * ( 1.0 - shadow) + vec3(0.15) * inColor, 1.0);
     //outFragColor = vec4(vec3(shadow)/30.0 , 1.0);
+    outFragColor =  vec4(vec3(0.0)/30.0 , 1.0);
 }

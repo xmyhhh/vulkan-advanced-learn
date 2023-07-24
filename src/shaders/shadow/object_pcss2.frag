@@ -245,8 +245,8 @@ void main()
     float shadow = PCSS(shadowMap, inShadowCoord_n) ;
 
 	outFragColor = vec4((specular + diffuse) * (shadow) + vec3(0.15) * inColor, 1.0);
-    //outFragColor = vec4(vec3(shadow), 1.0);
-
+    outFragColor = vec4(vec3(shadow), 1.0);
+    //outFragColor = vec4(vec3(0.0), 1.0);
  
 
 }

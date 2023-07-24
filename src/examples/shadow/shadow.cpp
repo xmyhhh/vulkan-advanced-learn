@@ -422,7 +422,7 @@ public:
 		pipelineCI.pVertexInputState = vkglTF::Vertex::getPipelineVertexInputState({ vkglTF::VertexComponent::Position, vkglTF::VertexComponent::UV, vkglTF::VertexComponent::Color, vkglTF::VertexComponent::Normal });
 		rasterizationStateCI.cullMode = VK_CULL_MODE_BACK_BIT;
 		shaderStages[0] = loadShader(getShadersPath() + "shadow/compile/object_vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getShadersPath() + "shadow/compile/object_pcss_frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "shadow/compile/object_pcss2_frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		// Use specialization constants to select between horizontal and vertical blur
 		uint32_t enablePCF = 0;
 		VkSpecializationMapEntry specializationMapEntry = vks::initializers::specializationMapEntry(0, 0, sizeof(uint32_t));
