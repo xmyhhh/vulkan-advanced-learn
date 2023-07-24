@@ -62,7 +62,10 @@ function(buildExample EXAMPLE_NAME)
 	OUTPUT ${EXAMPLE_NAME}SPV
 	DEPENDS ${GLSL_SOURCE_FILES}
 	WORKING_DIRECTORY C:/Users/xmy/Desktop/vulkan-learn-advanced/src/shaders/${EXAMPLE_NAME}
-	COMMAND cmd /c C:/Users/xmy/Desktop/vulkan-learn-advanced/src/shaders/${EXAMPLE_NAME}/compile.bat)
+	COMMAND cmd /c if exist compile rmdir /s /q compile
+	COMMAND cmd /c mkdir compile
+	COMMAND cmd /c compile.bat
+	)
 
 	add_custom_target(
 		${EXAMPLE_NAME}Shaders
