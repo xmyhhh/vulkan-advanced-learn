@@ -3,6 +3,8 @@ set(EXAMPLES
 	shadow
 )
 
+
+
 function(buildExample EXAMPLE_NAME)
 	SET(EXAMPLE_FOLDER ${CMAKE_CURRENT_SOURCE_DIR}/${EXAMPLE_NAME})
 	message(STATUS "Generating project file for example in ${EXAMPLE_FOLDER}")
@@ -42,37 +44,23 @@ function(buildExample EXAMPLE_NAME)
 	endif(WIN32)
 
 	set_target_properties(${EXAMPLE_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
-	if(${EXAMPLE_NAME} STREQUAL "texture3d")
-		if(APPLE)
-			# SRS - Use MacPorts paths as default since the same on x86 and Apple Silicon, can override for homebrew on cmake command line
-			if(NOT OpenMP_omp_LIBRARY AND EXISTS /opt/local/lib/libomp/libomp.dylib)
-				set(OpenMP_omp_LIBRARY /opt/local/lib/libomp/libomp.dylib)
-			endif()
-			if(CMAKE_C_COMPILER_ID MATCHES "Clang\$")
-				set(OpenMP_C_FLAGS "-Xclang -fopenmp")
-				set(OpenMP_C_LIB_NAMES "omp")
-				if(NOT OpenMP_C_INCLUDE_DIR AND EXISTS /opt/local/include/libomp)
-					set(OpenMP_C_INCLUDE_DIR /opt/local/include/libomp)
-				endif()
-			endif()
-			if(CMAKE_CXX_COMPILER_ID MATCHES "Clang\$")
-				set(OpenMP_CXX_FLAGS "-Xclang -fopenmp")
-				set(OpenMP_CXX_LIB_NAMES "omp")
-				if(NOT OpenMP_CXX_INCLUDE_DIR AND EXISTS /opt/local/include/libomp)
-					set(OpenMP_CXX_INCLUDE_DIR /opt/local/include/libomp)
-				endif()
-			endif()
-		endif()
-		find_package(OpenMP)
-		if(OpenMP_CXX_FOUND)
-   			target_link_libraries(${EXAMPLE_NAME} OpenMP::OpenMP_CXX)
-		endif()
-	endif()
 
 	if(RESOURCE_INSTALL_DIR)
 		install(TARGETS ${EXAMPLE_NAME} DESTINATION ${CMAKE_INSTALL_BINDIR})
 	endif()
+
+	message(shaderCompile)
+
+	add_custom_command(
+	TARGET  ${EXAMPLE_NAME}
+	PRE_BUILD 
+	WORKING_DIRECTORY C:/Users/xmy/Desktop/vulkan-learn-advanced/src/shaders/${EXAMPLE_NAME}
+	COMMAND cmd /c C:/Users/xmy/Desktop/vulkan-learn-advanced/src/shaders/${EXAMPLE_NAME}/compile.bat
+)
+
 endfunction(buildExample)
+
+
 
 function(buildExamples)
 	foreach(EXAMPLE ${EXAMPLES})
