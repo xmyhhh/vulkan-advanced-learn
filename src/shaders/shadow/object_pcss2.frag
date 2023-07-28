@@ -176,13 +176,13 @@ const vec2 POISSON128[128] = vec2[](
 
 
 float findBlocker( sampler2D shadowMap,  vec2 uv, float zReceiver ) {
-  const int radius = 40;
-  const vec2 texelSize = vec2(1.0/2048.0, 1.0/2048.0);
+  const int searchRange = 40;
+  vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
   float cnt = 0.0, blockerDepth = 0.0;
   int flag = 0;
-  for(int ns = 0;ns < 128;++ns)
+  for(int i = 0;i < 128;++i)
   {
-      vec2 sampleCoord = (vec2(radius) * POISSON128[ns]) * texelSize + uv;
+      vec2 sampleCoord = ((searchRange) * POISSON128[i]) * texelSize + uv;
       float cloestDepth = texture(shadowMap, sampleCoord).r;
       if(zReceiver > cloestDepth)
       {
@@ -198,24 +198,23 @@ float findBlocker( sampler2D shadowMap,  vec2 uv, float zReceiver ) {
   return 1.0;
 }
 
-float PCF(sampler2D shadowMap, vec4 shadowCoord, float radius) {
-  const vec2 texelSize = vec2(1.0/2048.0, 1.0/2048.0);
-  float visibility = 0.0, cnt = 0.0;
+float PCF(sampler2D shadowMap, vec4 shadingPoint_Pos_LightSpace, float penumbraWidth) {
+
+  float shadow = 0.0, count = 0.0;
   for(int ns = 0;ns < 128;++ns)
   {
-    vec2 sampleCoord = (vec2(radius) * POISSON128[ns]) * texelSize + shadowCoord.xy;
+    vec2 sampleCoord = (vec2(penumbraWidth) * POISSON128[ns]) *  vec2(1.0/2048.0, 1.0/2048.0) + shadingPoint_Pos_LightSpace.xy;
     float cloestDepth = texture(shadowMap, sampleCoord).r;
-    visibility += ((shadowCoord.z - 0.001) > cloestDepth ? 0.0 : 1.0);
-    cnt += 1.0;
+    shadow += ((shadingPoint_Pos_LightSpace.z - 0.001) > cloestDepth ? 0.0 : 1.0);
+    count += 1.0;
   }
-  return visibility/cnt;
+  return shadow/count;
 }
 
 float PCSS(sampler2D shadowMap, vec4 shadingPoint_Pos_LightSpace){
 
   // STEP 1: avgblocker depth
   float avgBlockerDepth = findBlocker(shadowMap, shadingPoint_Pos_LightSpace.xy, shadingPoint_Pos_LightSpace.z);
-
 
   // STEP 2: penumbra size
   const float lightWidth = 50.0;
@@ -245,7 +244,7 @@ void main()
     float shadow = PCSS(shadowMap, inShadowCoord_n) ;
 
 	outFragColor = vec4((specular + diffuse) * (shadow) + vec3(0.15) * inColor, 1.0);
-    outFragColor = vec4(vec3(shadow), 1.0);
+    //outFragColor = vec4(vec3(shadow), 1.0);
     //outFragColor = vec4(vec3(0.0), 1.0);
  
 

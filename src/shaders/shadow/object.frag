@@ -47,7 +47,6 @@ float filterPCF(vec4 sc)
 			shadowFactor += textureProj(sc, vec2(dx*x, dy*y));
 			count++;
 		}
-	
 	}
 	return shadowFactor / count;
 }
@@ -57,7 +56,7 @@ void main()
 	vec4 inShadowCoord_n = inShadowCoord /inShadowCoord.w;
 	inShadowCoord_n.xy = inShadowCoord_n.xy * 0.5 + 0.5;
 
-	float shadow = (enablePCF == 1) ? filterPCF(inShadowCoord_n ) : textureProj(inShadowCoord_n , vec2(0.0));
+	float shadow =  textureProj(inShadowCoord_n , vec2(0.0));
 
 	vec3 N = (inNormal);
 	vec3 L = (inLightVec);

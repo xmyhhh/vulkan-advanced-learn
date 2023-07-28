@@ -75,6 +75,25 @@
 #include "benchmark.hpp"
 
 
+struct Light
+{
+	glm::mat4     mLightViewProj;
+	glm::vec4     position;
+	glm::vec4     color;
+
+};
+
+
+struct PerFrame
+{
+	glm::mat4 mCameraCurrViewProj;
+	glm::mat4  mInverseCameraCurrViewProj;
+	glm::vec4  cameraPos;
+
+	Light     lights[1];
+};
+
+
 struct SceneDirectionalLight {
 	vkglTF::Model model;
 	glm::vec3 pos;
