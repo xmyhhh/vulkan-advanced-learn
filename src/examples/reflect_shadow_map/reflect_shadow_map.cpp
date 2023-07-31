@@ -260,7 +260,7 @@ public:
 		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 		subpass.colorAttachmentCount = colorReferences.size();
 		subpass.pColorAttachments = colorReferences.data();
-		subpass.pDepthStencilAttachment = &depthReference;									// Reference to our depth attachment
+		subpass.pDepthStencilAttachment = &depthReference;			// Reference to our depth attachment
 
 		// Use subpass dependencies for layout transitions
 		std::array<VkSubpassDependency, 2> dependencies;
@@ -543,10 +543,10 @@ public:
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines.debug));
 
 		// Scene rendering with shadows applied
-		pipelineCI.pVertexInputState = vkglTF::Vertex::getPipelineVertexInputState({ vkglTF::VertexComponent::Position, vkglTF::VertexComponent::UV, vkglTF::VertexComponent::Color, vkglTF::VertexComponent::Normal });
-		rasterizationStateCI.cullMode = VK_CULL_MODE_BACK_BIT;
-		shaderStages[0] = loadShader(getShadersPath() + "reflect_shadow_map/compile/object_vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getShadersPath() + "reflect_shadow_map/compile/object_frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		pipelineCI.pVertexInputState = &emptyInputState;
+		rasterizationStateCI.cullMode = VK_CULL_MODE_NONE;
+		shaderStages[0] = loadShader(getShadersPath() + "reflect_shadow_map/compile/quad_vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "reflect_shadow_map/compile/quad_frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		// Use specialization constants to select between horizontal and vertical blur
 		uint32_t enablePCF = 0;
 		VkSpecializationMapEntry specializationMapEntry = vks::initializers::specializationMapEntry(0, 0, sizeof(uint32_t));
@@ -561,6 +561,7 @@ public:
 		// Offscreen pipeline (vertex shader only)
 		shaderStages[0] = loadShader(getShadersPath() + "reflect_shadow_map/compile/shadowmap_vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getShadersPath() + "reflect_shadow_map/compile/shadowmap_frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		pipelineCI.pVertexInputState = vkglTF::Vertex::getPipelineVertexInputState({ vkglTF::VertexComponent::Position, vkglTF::VertexComponent::UV, vkglTF::VertexComponent::Color, vkglTF::VertexComponent::Normal });
 		pipelineCI.stageCount = 2;
 		pipelineCI.layout = offscreenPass.pipelineLayout;
 		std::array<VkPipelineColorBlendAttachmentState, 4> blendAttachmentStates = {
@@ -682,12 +683,7 @@ public:
 				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
 				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, (filterPCF) ? pipelines.sceneShadowPCF : pipelines.sceneShadow);
 
-				for (auto& scene_object : scene.objects) {
-					glm::mat4 model = glm::translate(glm::mat4(1.0f), scene_object.pos);
-					model = glm::scale(model, scene_object.size);
-					vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushBlock), &model);
-					scene_object.model.draw(drawCmdBuffers[i]);
-				}
+				vkCmdDraw(drawCmdBuffers[i], 3, 1, 0, 0);
 
 				drawUI(drawCmdBuffers[i]);
 

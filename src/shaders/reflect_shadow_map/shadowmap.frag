@@ -1,9 +1,5 @@
 #version 450
-#extension GL_EXT_shader_texture_lod: enable
-#extension GL_ARB_separate_shader_objects : enable
-#extension GL_ARB_shading_language_420pack : enable
-// this makes the structures declared with a scalar layout match the c structures
-#extension GL_EXT_scalar_block_layout : enable
+
 #include "../base/common.h"
 
 layout (location = 0) in VS2PS in_vs;

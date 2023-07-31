@@ -1,25 +1,26 @@
 #version 450
 
-layout (binding = 1) uniform sampler2D samplerColor;
+#include "../base/common.h"
 
-layout (location = 0) in vec2 inUV;
+layout (location = 0) in vec2 in_UV;
 
-layout (location = 0) out vec4 outFragColor;
+layout (location = 0) out vec4 out_color;
 
-layout (binding = 0) uniform UBO 
+layout (constant_id = 0) const int enablePCF = 0;
+
+layout (set = 0, binding = 0) uniform perFrame 
 {
-	mat4 projection;
-	mat4 view;
-	vec4 camPos;
-	mat4 lightSpace;
-	vec4 lightPos;
-
-} ubo;
-
+	PerFrame per_frame_data;
+};
+layout (set = 0, binding = 1) uniform sampler2D positionMap;
+layout (set = 0, binding = 2) uniform sampler2D normalMap;
+layout (set = 0, binding = 3) uniform sampler2D albedoMap;
+layout (set = 0, binding = 4) uniform sampler2D fluxMap;
+layout (set = 0, binding = 5) uniform sampler2D shadowMap;
 
 
 void main() 
 {
-	float depth = texture(samplerColor, inUV).r;
-	outFragColor = vec4(vec3(1.0-depth), 1.0);
+	vec3 depth = texture(albedoMap, in_UV).rgb;
+	out_color = vec4(in_UV, 0.0, 1.0);
 }
