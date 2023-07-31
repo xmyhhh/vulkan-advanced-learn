@@ -5,7 +5,7 @@
 $$float3\quad L = 2 * dot ( V , N ) * N - V$$
 
 
-### 1.2 Change Of Basis
+### 1.2 [Change Of Basis](https://www.statlect.com/matrix-algebra/change-of-basis)
 Suppose that a finite-dimensional vector space $S$ possesses a basis $B=\left\lbrace b_{1}, \ldots, b_{K}\right\rbrace$.
 
 Then, any vector $sin S$ can be written as a linear combination of the basis: $s=\sigma_{1} b_{1}+\ldots+\sigma_{K} b_{K}$
