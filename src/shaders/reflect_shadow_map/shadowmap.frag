@@ -4,9 +4,9 @@
 
 layout (location = 0) in VS2PS in_vs;
 
-layout (location = 0) out vec4 out_frag_color;
-layout (location = 1) out vec4 out_world_sapce;
-layout (location = 2) out vec4 out_normal;
+layout (location = 0) out vec4 out_world_sapce;
+layout (location = 1) out vec4 out_normal;
+layout (location = 2) out vec4 out_frag_color;
 layout (location = 3) out vec4 out_flux;
 
 layout (set=0, binding = 0) uniform perFrame 

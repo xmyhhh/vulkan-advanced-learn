@@ -105,8 +105,8 @@ public:
 		const uint32_t glTFLoadingFlags = vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::PreMultiplyVertexColors | vkglTF::FileLoadingFlags::FlipY;
 
 		//Step 1:define model 
-		std::vector obj_to_load = { "models/plane.gltf", "models/armor/armor.gltf" };
-		std::vector<glm::vec3> obj_pos = { glm::vec3(0, 0, 0), glm::vec3(0, 0, 0) };
+		std::vector obj_to_load = { "models/plane.gltf", "models/glowsphere.gltf" };
+		std::vector<glm::vec3> obj_pos = { glm::vec3(0, 0, 0), glm::vec3(0, -3, 0) };
 
 		std::vector<glm::vec3> obj_size = { glm::vec3(5, 5, 5), glm::vec3(1, 1, 1) };
 		//Step 2:define light 

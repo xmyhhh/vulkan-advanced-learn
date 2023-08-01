@@ -17,3 +17,8 @@ biasMat =  np.array( [
 biasMat = np.transpose(biasMat)
 outShadowCoord = biasMat @ lightSpaceMatrix @ model  @ inPos
 pass
+
+r = np.array([2, 2, 2])
+a = np.linalg.norm(r)
+
+pass
