@@ -22,5 +22,5 @@ layout (set = 0, binding = 5) uniform sampler2D shadowMap;
 void main() 
 {
 	vec3 depth = texture(albedoMap, in_UV).rgb;
-	out_color = vec4(in_UV, 0.0, 1.0);
+	out_color = vec4(depth, 1.0);
 }

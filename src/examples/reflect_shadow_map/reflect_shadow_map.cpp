@@ -68,10 +68,10 @@ public:
 	VulkanExample() : VulkanExampleBase(true) {
 		title = "Shadow";
 		camera.type = Camera::CameraType::firstperson;
-		camera.setPosition(glm::vec3(10.0f, 13.0f, 1.8f));
-		camera.setRotation(glm::vec3(-62.5f, 90.0f, 0.0f));
-		camera.movementSpeed = 4.0f;
+		camera.position = { 2.15f, 0.3f, -8.75f };
+		camera.setRotation(glm::vec3(-0.75f, 12.5f, 0.0f));
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
+		camera.movementSpeed = 4.0f;
 		camera.rotationSpeed = 0.25f;
 		paused = true;
 		timerSpeed *= 0.25f;
@@ -105,10 +105,10 @@ public:
 		const uint32_t glTFLoadingFlags = vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::PreMultiplyVertexColors | vkglTF::FileLoadingFlags::FlipY;
 
 		//Step 1:define model 
-		std::vector obj_to_load = { "models/plane.gltf", "models/glowsphere.gltf" };
-		std::vector<glm::vec3> obj_pos = { glm::vec3(0, 0, 0), glm::vec3(0, -1, 0) };
+		std::vector obj_to_load = { "models/plane.gltf", "models/armor/armor.gltf" };
+		std::vector<glm::vec3> obj_pos = { glm::vec3(0, 0, 0), glm::vec3(0, 0, 0) };
 
-		std::vector<glm::vec3> obj_size = { glm::vec3(5, 5, 5), glm::vec3(0.6, 0.6, 0.6) };
+		std::vector<glm::vec3> obj_size = { glm::vec3(5, 5, 5), glm::vec3(1, 1, 1) };
 		//Step 2:define light 
 		scene.dir_lights.resize(1);
 		scene.dir_lights[0].model.loadFromFile(getAssetPath() + "models/cube.gltf", vulkanDevice, queue, glTFLoadingFlags);
@@ -155,9 +155,9 @@ public:
 
 	void updateUniformBuffers()
 	{
-		perFrame.mCameraCurrViewProj = camera.matrices.perspective * camera.matrices.view;
+		perFrame.mCameraCurrView = camera.matrices.view;
+		perFrame.mCameraCurrProj = camera.matrices.perspective ;
 		perFrame.cameraPos = glm::vec4(camera.position * -1.0f, 1.0f);
-
 
 		memcpy(uniformBuffers.per_frame.mapped, &perFrame, sizeof(PerFrame));
 	}

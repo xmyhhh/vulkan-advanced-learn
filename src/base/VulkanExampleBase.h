@@ -86,8 +86,8 @@ struct Light
 
 struct PerFrame
 {
-	glm::mat4 mCameraCurrViewProj;
-	glm::mat4  mInverseCameraCurrViewProj;
+	glm::mat4 mCameraCurrProj;
+	glm::mat4 mCameraCurrView;
 	glm::vec4  cameraPos;
 
 	Light     lights[1];

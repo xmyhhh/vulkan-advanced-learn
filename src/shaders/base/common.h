@@ -20,8 +20,8 @@ struct Light
 
 struct PerFrame
 {
-    mat4          u_mCameraCurrViewProj;
-    mat4          u_mCameraCurrViewProjInverse;
+    mat4          u_mCameraCurrProj;
+    mat4          u_mCameraCurrView;
     vec4          u_CameraPos;
 
     Light         u_lights[1];

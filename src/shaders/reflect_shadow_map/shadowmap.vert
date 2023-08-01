@@ -31,7 +31,7 @@ out gl_PerVertex
  
 void main()
 {
-	gl_Position =  per_frame_data.u_lights[0].mLightViewProj * pushConsts.model * vec4(in_pos, 1.0);
+	gl_Position = per_frame_data.u_mCameraCurrProj * per_frame_data.u_mCameraCurrView  * pushConsts.model * vec4(in_pos, 1.0);
 
 	out_ps.Normal = transpose(inverse(mat3(pushConsts.model))) * normalize(in_normal);
 	out_ps.WorldPos = vec3(pushConsts.model * vec4(in_pos, 1.0));

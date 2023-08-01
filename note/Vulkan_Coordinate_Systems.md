@@ -92,7 +92,7 @@ $$
 where $z_d$ is $z_{clip}/w_{clip}$ (the same for $x_d$ and $y_d$)
 
 
-### 2.2 Framebuffer Space
+### 2.3 Framebuffer Space
 The vertex’s framebuffer coordinates ($x_f$ , $y_f$ , $z_f$) are given by:
 $$
 \left(\begin{array}{c}
@@ -126,3 +126,36 @@ typedef struct VkViewport {
     float    maxDepth;
 } VkViewport;
 ```
+
+<h1 align='center' >3. Texture Coordinates</h1>
+
+### 3.1 Darw Screen Quad
+
+```c
+vkCmdDraw(drawCmdBuffers[i], 3, 1, 0, 0);
+```
+
+```glsl
+#version 450
+
+layout (location = 0) out vec2 outUV;
+
+void main() 
+{
+	outUV = vec2((gl_VertexIndex << 1) & 2, gl_VertexIndex & 2);
+	gl_Position = vec4(outUV * 2.0f - 1.0f, 0.0f, 1.0f);
+}
+
+```
+
+### 3.3 [Texture Sample in Shader](https://jdelezenne.github.io/Codex/Game/Texture.html)
+```glsl
+texture(samplerposition, inUV).rgb;
+```
+Texture coordinates are floating-point positions that map locations on a texture image to locations on a geometric surface.
+
+In general, texture coordinates are in the range [0, 1].
+
+In DirectX, Metal, and Vulkan, the top left corner of a texture is (0, 0).
+
+In OpenGL, the bottom left corner of a texture is (0, 0).
