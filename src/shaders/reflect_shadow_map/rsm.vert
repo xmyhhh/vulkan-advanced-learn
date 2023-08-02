@@ -1,6 +1,5 @@
 #version 450
 
-
 #include "../base/common.h"
 
 layout (location = 0) in vec3 in_pos;
@@ -8,7 +7,9 @@ layout (location = 1) in vec3 in_uv;
 layout (location = 2) in vec3 in_color;
 layout (location = 3) in vec3 in_normal;
 
-layout (location = 0) out VS2PS out_vs;
+
+layout (location = 0) out vec4 out_shadowCoord;
+layout (location = 1) out VS2PS out_vs;
 
 layout (set=0, binding = 0) uniform perFrame 
 {
@@ -24,13 +25,14 @@ out gl_PerVertex
     vec4 gl_Position;   
 };
 
- 
-void main()
+void main() 
 {
-	gl_Position = per_frame_data.u_lights[0].mLightViewProj * pushConsts.model * vec4(in_pos, 1.0);
+	gl_Position = per_frame_data.u_mCameraCurrProj * per_frame_data.u_mCameraCurrView  * pushConsts.model * vec4(in_pos, 1.0);
 
 	out_vs.Normal = transpose(inverse(mat3(pushConsts.model))) * normalize(in_normal);
 	out_vs.WorldPos = vec3(pushConsts.model * vec4(in_pos, 1.0));
 	out_vs.Color0 = in_color;
 	out_vs.UV0 = in_uv.xy;
+
+	out_shadowCoord = (per_frame_data.u_lights[0].mLightViewProj * pushConsts.model ) * vec4(in_pos, 1.0);	
 }
