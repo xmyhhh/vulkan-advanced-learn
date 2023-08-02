@@ -1,6 +1,7 @@
 set(EXAMPLES
 	pbr_basic
 	shadow
+	deferred
 	reflect_shadow_map
 )
 
