@@ -4,6 +4,7 @@
 
 
 #define ambient 0.1
+#define numSamples 32
 
 layout (location = 0) in vec4 in_shadowCoord;
 layout (location = 1) in VS2PS in_fs;
@@ -53,6 +54,11 @@ void main()
 		vec3 fragPos = texture(positionMap, in_shadowCoord_n.xy).xyz;
 		vec3 flux = texture(fluxMap, in_shadowCoord_n.xy).xyz;
 		if(in_shadowCoord_n.z < 1.0 && in_shadowCoord_n.z > 0.0){
+			
+			 for (int i = 0; i < numSamples; i++){
+				
+			 
+			 }
 
 		}
 	}

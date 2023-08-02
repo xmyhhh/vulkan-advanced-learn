@@ -135,12 +135,22 @@ public:
 		// Map persistent
 		VK_CHECK_RESULT(uniformBuffers.per_frame.map());
 
-		std::default_random_engine generator;
-		std::uniform_real_distribution<float> distribution;
 
 
 		updateUniformBufferPerFrame();
 		updateUniformBuffers();
+	}
+
+	void updateUniformNoise() {
+		std::default_random_engine generator;
+		std::uniform_real_distribution<float> distribution;
+		//  generate noise texture in host
+		const int noiseDim = 64;
+		std::vector<float> rotations(noiseDim * noiseDim);
+		for (float& rotation : rotations)
+			rotation = distribution(generator);
+
+
 	}
 
 	void updateUniformBufferPerFrame()
