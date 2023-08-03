@@ -84,5 +84,24 @@ between two sets of operations
     - memory barrier, included as part of a vkCmdPipelineBarrier or a vkCmdWaitEvents command buffer command
     - a subpass dependency within a render pass
 - Image layout is per-image subresource. Separate image subresources of the same image can be in different layouts at the same time, with the exception that depth and stencil aspects of a given image subresource can only be in different layouts if the separateDepthStencilLayouts feature is enabled.
+- Upon creation, all image subresources of an image are initially in the same layout, where that layout is selected by the **VkImageCreateInfo::initialLayout** member. The initialLayout must be either **VK_IMAGE_LAYOUT_UNDEFINED** or **VK_IMAGE_LAYOUT_PREINITIALIZED**.
 
-<h1 align='center' >4. Pipeline Barriers</h1>
+
+
+### 3.2 Image Layout Transitions
+- When a layout transition is specified in a memory dependency, it happens-after the **availability operations** in the memory dependency, and happens-before the **visibility operations**.
+- Image layout transitions may perform read and write, so applications must ensure that all memory writes have been made available before a layout transition is executed.
+- Available memory is automatically made visible to a layout transition
+- Writes performed by a layout transition are automatically made available.
+- Layout transitions always apply to a particular image subresource range.
+- The old layout must either be **VK_IMAGE_LAYOUT_UNDEFINED**, or match the current layout of the image subresource range. If the old layout matches the current layout of the image subresource range, the transition preserves the contents of that range. If the old layout is **VK_IMAGE_LAYOUT_UNDEFINED**, the contents of that range may be discarded.
+- Applications must ensure that layout transitions happen-after all operations accessing the image with the old layout, and happen-before any operations that will access the image with the new layout.
+
+
+<h1 align='center' >4.Pipeline Stages</h1>
+
+- The work performed by an action or synchronization command consists of multiple operations, which are performed as a sequence of logically independent steps known as pipeline stages.
+- The exact pipeline stages executed depend on the particular command that is used, and current command buffer state when the command was recorded. 
+- Drawing commands, dispatching commands, copy commands, clear commands, and synchronization commands all execute in different sets of pipeline stages. 
+- Synchronization commands do not execute in a defined pipeline stage.
+
