@@ -63,7 +63,7 @@ function(buildExample EXAMPLE_NAME)
 	add_custom_command(
 	OUTPUT ${EXAMPLE_NAME}SPV
 	DEPENDS ${GLSL_SOURCE_FILES}
-	WORKING_DIRECTORY C:/Users/xmy/Desktop/vulkan-learn-advanced/src/shaders/${EXAMPLE_NAME}
+	WORKING_DIRECTORY ${EXAMPLE_SHADER_FOLDER}
 	COMMAND cmd /c if exist compile rmdir /s /q compile
 	COMMAND cmd /c mkdir compile
 	COMMAND cmd /c compile.bat
