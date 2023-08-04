@@ -104,4 +104,13 @@ between two sets of operations
 - The exact pipeline stages executed depend on the particular command that is used, and current command buffer state when the command was recorded. 
 - Drawing commands, dispatching commands, copy commands, clear commands, and synchronization commands all execute in different sets of pipeline stages. 
 - Synchronization commands do not execute in a defined pipeline stage.
+- If a synchronization command includes a source stage mask, its first synchronization scope only includes execution of the pipeline stages specified in that mask and any logically earlier stages. Its first access scope only includes memory accesses performed by pipeline stages explicitly specified in the source stage mask.
+- If a synchronization command includes a destination stage mask, its second synchronization scope only includes execution of the pipeline stages specified in that mask and any logically later stages. Its second access scope only includes memory accesses performed by pipeline stages explicitly specified in the destination stage mask.
+- Access scopes do not interact with the logically earlier or later stages for either scope - only the stages the app specifies are considered part of each access scope.
 
+<h1 align='center' >5. Access Types</h1>
+
+- Memory in Vulkan can be accessed from within shader invocations and via some fixed-function stages of the pipeline. 
+- The access type is a function of the descriptor type used, or how a fixed-function stage accesses memory.
+- Certain access types are only performed by a subset of pipeline stages.
+- An application must not specify an access flag in a synchronization command if it does not include a pipeline stage in the corresponding stage mask that is able to perform accesses of that type
