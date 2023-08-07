@@ -28,6 +28,10 @@ public:
 		VkDescriptorSetLayout descriptorSetLayout;
 		VkPipelineLayout pipelineLayout;
 		VkDescriptorSet descriptorSet;
+		vks::Buffer angle;
+		vks::Buffer offset;
+		int n_sample = 400;
+
 	} offscreenPass;
 
 	VkDescriptorSetLayout descriptorSetLayout;
@@ -139,16 +143,75 @@ public:
 
 		updateUniformBufferPerFrame();
 		updateUniformBuffers();
+		updateUniformNoise();
+		updateUniformOffset();
+	}
+
+	void updateUniformOffset() {
+
+		//  initialize randomizer using gamma dist. with the following alpha and beta resp.
+		std::default_random_engine generator;
+		std::gamma_distribution<float> dist_r(3.5f, 1.0f);
+		std::uniform_real_distribution<float> dist_theta(-3.141592654f, 3.141592654f); // to rotate uniformly in 2D
+
+		//  setup sampling function
+		auto sample_offset = [&dist_r, &dist_theta, &generator]() -> std::pair<float, float>
+		{
+			float r, theta;
+
+			//  sample r
+			do {
+				r = dist_r(generator);
+			} while (r > 10.f); // set the cutoff at 10.0 according to gamma distribution
+			r /= 10.f;          // normalize
+
+			//  sample theta
+			theta = dist_theta(generator);
+
+			return { r * std::cosf(theta), r * std::sinf(theta) };
+		};
+
+
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
+			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			&offscreenPass.offset,
+			offscreenPass.n_sample * 2 * sizeof(float)));
+
+
+		// Map persistent
+		VK_CHECK_RESULT(offscreenPass.offset.map());
+
+		std::pair<float, float>* pOffset = (std::pair<float, float>*) offscreenPass.offset.mapped;
+
+		for (int i = 0; i < offscreenPass.n_sample; i++)
+			pOffset[i] = sample_offset();
+
+		int a = 0;
 	}
 
 	void updateUniformNoise() {
 		std::default_random_engine generator;
 		std::uniform_real_distribution<float> distribution;
 		//  generate noise texture in host
-		const int noiseDim = 64;
-		std::vector<float> rotations(noiseDim * noiseDim);
-		for (float& rotation : rotations)
-			rotation = distribution(generator);
+		const int noiseDim = offscreenPass.n_sample;
+
+
+
+		//offscreenPass.noiseTexture.fromBuffer(rotations.data(), noiseDim * noiseDim * 4, VK_FORMAT_R32_SFLOAT, noiseDim, noiseDim, vulkanDevice, queue, VK_FILTER_LINEAR, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
+			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			&offscreenPass.angle,
+			noiseDim * sizeof(float)));
+
+		// Map persistent
+		VK_CHECK_RESULT(offscreenPass.angle.map());
+
+		float* p = (float*)offscreenPass.angle.mapped;
+
+		for (int i = 0; i < offscreenPass.n_sample; i++)
+			p[i] = distribution(generator);
 
 
 	}
@@ -427,6 +490,8 @@ public:
 				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 3),
 				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 4),
 				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 5),
+				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 6),
+				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 7)
 			};
 			VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
 			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
@@ -491,6 +556,7 @@ public:
 				offscreenPass.flux.view,
 				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
+
 		{
 			VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
 			// Scene rendering with shadow map applied
@@ -503,7 +569,9 @@ public:
 				vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &texDescriptorNormal),
 				vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, &texDescriptorAlbedo),
 				vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4, &texDescriptorFlux),
-				vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 5, &shadowMapDescriptor)
+				vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 5, &shadowMapDescriptor),
+				vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 6, &offscreenPass.angle.descriptor),
+				vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 7, &offscreenPass.offset.descriptor)
 			};
 			vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, nullptr);
 		}

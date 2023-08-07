@@ -30,6 +30,7 @@ void main()
 	gl_Position = per_frame_data.u_mCameraCurrProj * per_frame_data.u_mCameraCurrView  * pushConsts.model * vec4(in_pos, 1.0);
 
 	out_vs.Normal = transpose(inverse(mat3(pushConsts.model))) * normalize(in_normal);
+	out_vs.Normal  = normalize(out_vs.Normal );
 	out_vs.WorldPos = vec3(pushConsts.model * vec4(in_pos, 1.0));
 	out_vs.Color0 = in_color;
 	out_vs.UV0 = in_uv.xy;
