@@ -30,6 +30,6 @@ void main()
 	
 	out_flux = vec4(flux, 1.0);
 	out_world_sapce = vec4(in_vs.WorldPos, 1.0);
-	out_normal = vec4(in_vs.Normal, 1.0);
+	out_normal =(vec4(in_vs.Normal, 1.0) + vec4(1.0))/ 2.0;
 	out_frag_color = vec4(in_vs.Color0, 1.0);
 }
