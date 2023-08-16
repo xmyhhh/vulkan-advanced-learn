@@ -113,6 +113,15 @@ typedef struct VkAccelerationStructureCreateInfoKHR {
 ```
 
 #### 2.1.2 Step to Build Bottom-Level Acceleration Structure
+精简版：
+1：对每个model拿到VkAccelerationStructureGeometryTrianglesDataKHR，VkAccelerationStructureGeometryKHR，VkAccelerationStructureBuildRangeInfoKHR三件套
+2：用VkAccelerationStructureGeometryKHR通过VkAccelerationStructureBuildSizesInfoKHR拿到VkAccelerationStructureBuildSizesInfoKHR大小，
+3: 根据VkAccelerationStructureBuildSizesInfoKHR开scratch buffer和as buffer
+4: 创建**VkAccelerationStructureKHR** handle
+5：重写VkAccelerationStructureBuildGeometryInfoKHR结构体（主要多了**VkAccelerationStructureKHR** handle和scratch buffer的设备地址），结合VkAccelerationStructureBuildRangeInfoKHR通过vkCmdBuildAccelerationStructuresKHR构建加速结构
+
+这个地方有一个batch技巧：一次创建很多model的blas，使用所有model中的scratch size最大值去创建一个共享scratch buffer，然后根据每个model需要的accelerationStructureSize大小去批量创建，例如前n个model需要的accelerationStructureSize加起来<256MB, 参考nvvk的raytraceKHR_vk.cpp实现
+
 ##### **Step 1:** Setup vertices, indices, transform matrix for a single triangle and create buffer for them.
 ```c
 		struct Vertex {
@@ -378,7 +387,6 @@ typedef struct VkAccelerationStructureCreateInfoKHR {
     VkDeviceOrHostAddressConstKHR instanceDataDeviceAddress{};
     instanceDataDeviceAddress.deviceAddress = getBufferDeviceAddress(instancesBuffer.buffer);
 ```
-
 ##### **Step 3:** define **VkAccelerationStructureGeometryKHR**
 ```c
     VkAccelerationStructureGeometryKHR accelerationStructureGeometry{};
@@ -545,6 +553,58 @@ typedef struct VkAccelerationStructureCreateInfoKHR {
 ```
 
 
+#### 2.1.4 use Acceleration Structure in shader
+- 在创建AS以后，会得到VkAccelerationStructureKHR类型的handle，在shader中，以uniform变量访问AS，具体操作如下：
+    - 在descriptorSetlayout中添加descriptorType为**VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR**的**VkDescriptorSetLayoutBinding**，然后像之前一样创建pipeline layout
+    ```c
+        VkDescriptorSetLayoutBinding accelerationStructureLayoutBinding{};
+		accelerationStructureLayoutBinding.binding = 0;
+		accelerationStructureLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
+		accelerationStructureLayoutBinding.descriptorCount = 1;
+		accelerationStructureLayoutBinding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
+        …………
+        std::vector<VkDescriptorSetLayoutBinding> bindings({
+			accelerationStructureLayoutBinding,
+			resultImageLayoutBinding,
+			uniformBufferBinding
+			});
+
+		VkDescriptorSetLayoutCreateInfo descriptorSetlayoutCI{};
+		descriptorSetlayoutCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+		descriptorSetlayoutCI.bindingCount = static_cast<uint32_t>(bindings.size());
+		descriptorSetlayoutCI.pBindings = bindings.data();
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorSetlayoutCI, nullptr, &descriptorSetLayout));
+
+		VkPipelineLayoutCreateInfo pipelineLayoutCI{};
+		pipelineLayoutCI.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+		pipelineLayoutCI.setLayoutCount = 1;
+		pipelineLayoutCI.pSetLayouts = &descriptorSetLayout;
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCI, nullptr, &pipelineLayout));
+    ```
+    - 使用VkWriteDescriptorSetAccelerationStructureKHR作为VkWriteDescriptorSet.pNext值，然后像之前一样vkUpdateDescriptorSets
+    ```c
+        VkWriteDescriptorSetAccelerationStructureKHR descriptorAccelerationStructureInfo{};
+		descriptorAccelerationStructureInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
+		descriptorAccelerationStructureInfo.accelerationStructureCount = 1;
+		descriptorAccelerationStructureInfo.pAccelerationStructures = &topLevelAS.handle;
+
+		VkWriteDescriptorSet accelerationStructureWrite{};
+		accelerationStructureWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		// The specialized acceleration structure descriptor has to be chained
+		accelerationStructureWrite.pNext = &descriptorAccelerationStructureInfo;
+		accelerationStructureWrite.dstSet = descriptorSet;
+		accelerationStructureWrite.dstBinding = 0;
+		accelerationStructureWrite.descriptorCount = 1;
+		accelerationStructureWrite.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
+        …………
+        std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+			accelerationStructureWrite,
+			resultImageWrite,
+			uniformBufferWrite
+		};
+		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, VK_NULL_HANDLE);
+    ```
+
 ### 2.3 Deferred Host Operations
 #### 2.3.1 what is Deferred Operations
 - Acceleration structures are very large resources, and managing them requires significant processing effort. Scheduling this work on a device alongside other rendering work can be tricky, particularly when host intervention is required.
@@ -585,19 +645,33 @@ typedef struct VkAccelerationStructureCreateInfoKHR {
 - During traversal, if required by the trace and acceleration structure, application shader code in an intersection and any hit shaders can control how traversal proceeds. After traversal completes, either a miss or closest hit shader is invoked.
 - The different shader stages can communicate parameters and results using ray payload structures between all traversal stages and ray attribute structures from the traversal control shaders.
 - To enable the traversal phase to know which shader to invoke after a given step of traversal to control or respond to the traversal, the implementation uses a **shader binding table**. 
-- Each shader entry consists:
-    - a shader group handle queried from the implementation for a given shader group 
-    - an optional shader buffer record which the application may use for instance-specific data such as buffer device addresses or descriptor indices. 
+
+- **Ray trace payloads** are declared as rayPayloadEXT or rayPayloadInEXT variables; together, they establish a caller/callee relationship between shader stages. Each invocation of a shader creates its own local copy of its declared rayPayloadEXT variables, when invoking another shader by calling traceRayEXT(), the caller can select one of its payloads to be made visible to the callee shader as its rayPayloadInEXT variable (also known as the “incoming payload”). Declare payloads wisely, as excessive memory usage reduces SM occupancy
+
+- Three shader types should be used:
+    - **The entry point** for ray tracing is The **ray generation shader**, which we will call for each pixel. It will typically initialize a ray starting at the location of the camera, in a direction given by evaluating the camera lens model at the pixel location. It will then invoke **traceRayEXT()**, that will shoot the ray in the scene. **traceRayEXT** invokes the next few shader types, which communicate results using ray trace payloads.
+    - **The miss shader** is executed when a ray does not intersect any geometry. For instance, it might sample an environment map, or return a simple color through the ray payload.
+    - **The closest hit shader** is called upon hitting the geometric instance closest to the starting point of the ray. This shader can for example perform lighting calculations and return the results through the ray payload. There can be as many closest hit shaders as needed, much like how a rasterization-based application has multiple pixel shaders depending on its objects.
+- Two more shader types can optionally be used:
+    - **The intersection shader**, which allows intersecting user-defined geometry. For example, this can be used to intersect geometry placeholders for on-demand geometry loading, or intersecting procedural geometry without tessellating them beforehand. Using this shader requires modifying how the acceleration structures are built, and is beyond the scope of this tutorial. We will instead rely on the built-in ray-triangle intersection test provided by the extension, which returns 2 floating-point values representing the barycentric coordinates (u,v) of the hit point inside the triangle.
+    - **The any hit shader** is executed on each potential intersection: when searching for the hit point closest to the ray origin, several candidates may be found on the way. The any hit shader can frequently be used to efficiently implement alpha-testing. If the alpha test fails, the ray traversal can continue without having to call traceRayEXT() again. The built-in any hit shader is simply a pass-through returning the intersection to the traversal engine, which will determine which ray intersection is the closest. For this example, such shaders will never be invoked as we specified the opaque flag while building the acceleration structures.
+
 
 #### 2.4.2 Shader Group
 - when ray tracing, unlike rasterization, we cannot group draws by material, so, every shader must be available for execution at any time when ray tracing, and the shaders executed are selected on the device at runtime. 
-
-
+- Shader Binding Table (SBT): the structure that makes this runtime shader selection possible. 
+- Shader Binding Table (SBT) build step:
+    - Load and compile shaders into **VkShaderModules** in the usual way.
+    - Package those **VkShaderModules** into an array of **VkPipelineShaderStageCreateInfo**.
+    - Create an array of **VkRayTracingShaderGroupCreateInfoKHR**; each will eventually become an SBT entry. At this point, the shader groups reference individual shaders by their index in the above **VkPipelineShaderStageCreateInfo** array as no device addresses have yet been allocated.
+     - Compile the above two arrays (plus a pipeline layout, as usual) into a raytracing pipeline using **vkCreateRayTracingPipelineKHR**.
+    - The pipeline compilation converted the earlier array of shader indices into an array of shader handles. Query this with **vkGetRayTracingShaderGroupHandlesKHR**.
+    - Allocate a buffer with the **VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR** usage bit, and copy the handles in.
 
 
 ### 2.5  Ray Queries
 - Ray queries provide direct access to ray traversal logic in any shader stage, allowing them to be plugged into existing shaders and enhancing the effects those shaders express.
-- Shader Binding Table (SBT): the structure that makes this runtime shader selection possible. 
+
 
 
 
