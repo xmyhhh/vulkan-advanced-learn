@@ -3,6 +3,7 @@ set(EXAMPLES
 	shadow
 	deferred
 	reflect_shadow_map
+	ray_trace
 )
 
 
