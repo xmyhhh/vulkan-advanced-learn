@@ -115,9 +115,13 @@ typedef struct VkAccelerationStructureCreateInfoKHR {
 #### 2.1.2 Step to Build Bottom-Level Acceleration Structure
 精简版：
 1：对每个model拿到VkAccelerationStructureGeometryTrianglesDataKHR，VkAccelerationStructureGeometryKHR，VkAccelerationStructureBuildRangeInfoKHR三件套
-2：用VkAccelerationStructureGeometryKHR通过VkAccelerationStructureBuildSizesInfoKHR拿到VkAccelerationStructureBuildSizesInfoKHR大小，
+
+2：用VkAccelerationStructureGeometryKHR通过VkAccelerationStructureBuildSizesInfoKHR拿到VkAccelerationStructureBuildSizesInfoKHR大小
+
 3: 根据VkAccelerationStructureBuildSizesInfoKHR开scratch buffer和as buffer
+
 4: 创建**VkAccelerationStructureKHR** handle
+
 5：重写VkAccelerationStructureBuildGeometryInfoKHR结构体（主要多了**VkAccelerationStructureKHR** handle和scratch buffer的设备地址），结合VkAccelerationStructureBuildRangeInfoKHR通过vkCmdBuildAccelerationStructuresKHR构建加速结构
 
 这个地方有一个batch技巧：一次创建很多model的blas，使用所有model中的scratch size最大值去创建一个共享scratch buffer，然后根据每个model需要的accelerationStructureSize大小去批量创建，例如前n个model需要的accelerationStructureSize加起来<256MB, 参考nvvk的raytraceKHR_vk.cpp实现
@@ -359,6 +363,10 @@ typedef struct VkAccelerationStructureCreateInfoKHR {
 
 #### 2.1.3 Step to Build Top-Level Acceleration Structure
 ##### **Step 1:**  Create **VkAccelerationStructureInstanceKHR** and write to a buffer
+VkAccelerationStructureInstanceKHR.accelerationStructureReference           ->   blas ref
+VkAccelerationStructureInstanceKHR.instanceCustomIndex                      ->   gl_InstanceCustomIndexEXT
+VkAccelerationStructureInstanceKHR.instanceShaderBindingTableRecordOffset   ->   hit group 
+VkAccelerationStructureInstanceKHR.mask                                     ->   Only be hit if rayMask & instance.mask != 0
 ```c
     VkTransformMatrixKHR transformMatrix = {
         1.0f, 0.0f, 0.0f, 0.0f,
@@ -659,7 +667,21 @@ typedef struct VkAccelerationStructureCreateInfoKHR {
 
 #### 2.4.2 Shader Group
 - when ray tracing, unlike rasterization, we cannot group draws by material, so, every shader must be available for execution at any time when ray tracing, and the shaders executed are selected on the device at runtime. 
-- Shader Binding Table (SBT): the structure that makes this runtime shader selection possible. 
+
+- Shader Group: the structure **VkRayTracingShaderGroupCreateInfoKHR** that refer a shader stage (by shader stage array index) and define a type(GENERAL/TRIANGLES_HIT_GROUP/PROCEDURAL_HIT_GROUP)
+- Shader Group Type:
+    - VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR  indicates a shader group with a single VK_SHADER_STAGE_RAYGEN_BIT_KHR, VK_SHADER_STAGE_MISS_BIT_KHR, or VK_SHADER_STAGE_CALLABLE_BIT_KHR shader in it.
+    - VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR specifies a shader group that only hits triangles and must not contain an intersection shader, only closest hit and any-hit shaders.
+    - VK_RAY_TRACING_SHADER_GROUP_TYPE_PROCEDURAL_HIT_GROUP_KHR specifies a shader group that only intersects with custom geometry and must contain an intersection shader and may contain closest hit and any-hit shaders.
+
+
+
+#### 2.4.3 Shader Binding Table
+- A shader binding table is a resource which establishes the relationship between the ray tracing pipeline and the acceleration structures that were built for the ray tracing pipeline. 
+- It indicates the shaders that operate on each geometry in an acceleration structure. 
+- In addition, it contains the resources accessed by each shader, including indices of textures, buffer device addresses, and constants. 
+- The application allocates and manages shader binding tables as VkBuffer objects.
+
 - Shader Binding Table (SBT) build step:
     - Load and compile shaders into **VkShaderModules** in the usual way.
     - Package those **VkShaderModules** into an array of **VkPipelineShaderStageCreateInfo**.
@@ -668,6 +690,30 @@ typedef struct VkAccelerationStructureCreateInfoKHR {
     - The pipeline compilation converted the earlier array of shader indices into an array of shader handles. Query this with **vkGetRayTracingShaderGroupHandlesKHR**.
     - Allocate a buffer with the **VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR** usage bit, and copy the handles in.
 
+- The shader binding tables to use in a ray tracing pipeline are passed to the vkCmdTraceRaysNV, vkCmdTraceRaysKHR, or vkCmdTraceRaysIndirectKHR commands.
+
+- Indexing Rules：
+    - **Ray Generation Shaders**： Only one ray generation shader is executed per ray tracing dispatch. For **vkCmdTraceRaysKHR**, the location of the ray generation shader is specified by the **pRaygenShaderBindingTable->deviceAddress** parameter — there is no indexing.
+    - **Hit Shaders**：The base for the computation of intersection, any-hit, and closest hit shader locations is the **instanceShaderBindingTableRecordOffset** value stored with each instance of a top-level acceleration structure (**VkAccelerationStructureInstanceKHR**). This value determines the beginning of the shader binding table records for a given instance. For vkCmdTraceRaysKHR, the complete rule to compute a hit shader binding table record address in the pHitShaderBindingTable is: 
+    **pHitShaderBindingTable->deviceAddress** + **pHitShaderBindingTable->stride** × (**instanceShaderBindingTableRecordOffset** + **geometryIndex** × **sbtRecordStride** + **sbtRecordOffset** )  (note: geometryIndex is a shader built-in variable, sbtRecordStride and sbtRecordOffset is passed by traceRayEXT)
+    - **Miss Shaders**: A miss shader is executed whenever a ray query fails to find an intersection for the given scene geometry. Multiple miss shaders may be executed throughout a ray tracing dispatch. The base for the computation of miss shader locations is **pMissShaderBindingTable->deviceAddress**, a device address passed into vkCmdTraceRaysKHR. The missIndex value is passed in as a parameter to traceNV() or traceRayEXT() calls made in the shaders. For vkCmdTraceRaysKHR, the complete rule to compute a miss shader binding table record address in the pMissShaderBindingTable is: **pMissShaderBindingTable->deviceAddress** + **pMissShaderBindingTable->stride** × **missIndex**.
+    - **Callable Shaders**: A callable shader is executed when requested by a ray tracing shader. Multiple callable shaders may be executed throughout a ray tracing dispatch. The base for the computation of callable shader locations is pCallableShaderBindingTable->deviceAddress, a device address passed into vkCmdTraceRaysKHR. For vkCmdTraceRaysKHR, the complete rule to compute a callable shader binding table record address in the pCallableShaderBindingTable is: **pCallableShaderBindingTable->deviceAddress** + **pCallableShaderBindingTable->stride** × **sbtRecordIndex**.
+
+
+    ```glsl
+    traceRayEXT(topLevelAS, // acceleration structure
+            rayFlags,       // rayFlags
+            0xFF,           // cullMask
+            0,              // sbtRecordOffset
+            0,              // sbtRecordStride
+            0,              // missIndex
+            origin.xyz,     // ray origin
+            tMin,           // ray min range
+            direction.xyz,  // ray direction
+            tMax,           // ray max range
+            0               // payload (location = 0)
+    );
+```
 
 ### 2.5  Ray Queries
 - Ray queries provide direct access to ray traversal logic in any shader stage, allowing them to be plugged into existing shaders and enhancing the effects those shaders express.
@@ -687,3 +733,6 @@ typedef struct VkAccelerationStructureCreateInfoKHR {
 https://www.khronos.org/blog/ray-tracing-in-vulkan
 
 https://nvpro-samples.github.io/vk_raytracing_tutorial_KHR/
+
+
+
