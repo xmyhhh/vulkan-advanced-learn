@@ -654,8 +654,6 @@ VkAccelerationStructureInstanceKHR.mask                                     ->  
 - The different shader stages can communicate parameters and results using ray payload structures between all traversal stages and ray attribute structures from the traversal control shaders.
 - To enable the traversal phase to know which shader to invoke after a given step of traversal to control or respond to the traversal, the implementation uses a **shader binding table**. 
 
-- **Ray trace payloads** are declared as rayPayloadEXT or rayPayloadInEXT variables; together, they establish a caller/callee relationship between shader stages. Each invocation of a shader creates its own local copy of its declared rayPayloadEXT variables, when invoking another shader by calling traceRayEXT(), the caller can select one of its payloads to be made visible to the callee shader as its rayPayloadInEXT variable (also known as the “incoming payload”). Declare payloads wisely, as excessive memory usage reduces SM occupancy
-
 - Three shader types should be used:
     - **The entry point** for ray tracing is The **ray generation shader**, which we will call for each pixel. It will typically initialize a ray starting at the location of the camera, in a direction given by evaluating the camera lens model at the pixel location. It will then invoke **traceRayEXT()**, that will shoot the ray in the scene. **traceRayEXT** invokes the next few shader types, which communicate results using ray trace payloads.
     - **The miss shader** is executed when a ray does not intersect any geometry. For instance, it might sample an environment map, or return a simple color through the ray payload.
@@ -663,6 +661,12 @@ VkAccelerationStructureInstanceKHR.mask                                     ->  
 - Two more shader types can optionally be used:
     - **The intersection shader**, which allows intersecting user-defined geometry. For example, this can be used to intersect geometry placeholders for on-demand geometry loading, or intersecting procedural geometry without tessellating them beforehand. Using this shader requires modifying how the acceleration structures are built, and is beyond the scope of this tutorial. We will instead rely on the built-in ray-triangle intersection test provided by the extension, which returns 2 floating-point values representing the barycentric coordinates (u,v) of the hit point inside the triangle.
     - **The any hit shader** is executed on each potential intersection: when searching for the hit point closest to the ray origin, several candidates may be found on the way. The any hit shader can frequently be used to efficiently implement alpha-testing. If the alpha test fails, the ray traversal can continue without having to call traceRayEXT() again. The built-in any hit shader is simply a pass-through returning the intersection to the traversal engine, which will determine which ray intersection is the closest. For this example, such shaders will never be invoked as we specified the opaque flag while building the acceleration structures.
+
+
+- [**Ray trace pipeline works as follows**](https://www.gsn-lib.org/docs/nodes/raytracing.php):
+    - **Ray Gen**: The ray generation shader creates rays and submits them to the "acceleration structure traversal" block by calling the function **traceRayEXT**. Once the ray traversal is complete, the traceRayEXT function returns to the caller and the payload can be evaluated in the ray generation shader to produce an output image.
+    - **Intersection**: If the ray traversal detects an intersection of the ray with a user-defined bounding box (or triangle of a triangle mesh), the intersection shader is called. If the intersection shader determines that a ray-primitive intersection has occurred within the bounding box, it notifies the ray traversal with the function **reportIntersectionEXT**. Furthermore, the intersection shader can fill a **hitAttributeEXT** variable (which can be of user-defined type). In the case of triangles, an intersection shader is already built-in. The built-in triangle intersection provides barycentric coordinates of the hit location within the triangle with the "**hitAttributeEXT** vec2 baryCoord" variable. For geometric primitives that are not triangles (such as cubes, cylinders, spheres, parametric surfaces, etc.) you have to provide your custom intersection shader.
+    - **Any-hit**: If an intersection is reported and an any-hit shader is provided, the any-hit shader is called. The task of the any-hit shader is to accept or ignore a hit. A typical application for an any-hit shader is to handle a partly transparent surface. If the hit occurs in a transparent region, it should be ignored. A hit is ignored with the **ignoreIntersectionEXT** statement. It is also possible to terminate the ray traversal in the any-hit shader with the **terminateRayEXT** statement. If no any-hit shader is provided or the **ignoreIntersectionEXT** statement is not called in the shader, the hit is reported to the ray traversal. 
 
 
 #### 2.4.2 Shader Group
@@ -681,8 +685,9 @@ VkAccelerationStructureInstanceKHR.mask                                     ->  
 - It indicates the shaders that operate on each geometry in an acceleration structure. 
 - In addition, it contains the resources accessed by each shader, including indices of textures, buffer device addresses, and constants. 
 - The application allocates and manages shader binding tables as VkBuffer objects.
+- The shader binding tables to use in a ray tracing pipeline are passed to the vkCmdTraceRaysNV, vkCmdTraceRaysKHR, or vkCmdTraceRaysIndirectKHR commands.
 
-- Shader Binding Table (SBT) build step:
+- Build Step:
     - Load and compile shaders into **VkShaderModules** in the usual way.
     - Package those **VkShaderModules** into an array of **VkPipelineShaderStageCreateInfo**.
     - Create an array of **VkRayTracingShaderGroupCreateInfoKHR**; each will eventually become an SBT entry. At this point, the shader groups reference individual shaders by their index in the above **VkPipelineShaderStageCreateInfo** array as no device addresses have yet been allocated.
@@ -690,14 +695,13 @@ VkAccelerationStructureInstanceKHR.mask                                     ->  
     - The pipeline compilation converted the earlier array of shader indices into an array of shader handles. Query this with **vkGetRayTracingShaderGroupHandlesKHR**.
     - Allocate a buffer with the **VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR** usage bit, and copy the handles in.
 
-- The shader binding tables to use in a ray tracing pipeline are passed to the vkCmdTraceRaysNV, vkCmdTraceRaysKHR, or vkCmdTraceRaysIndirectKHR commands.
-
 - Indexing Rules：
     - **Ray Generation Shaders**： Only one ray generation shader is executed per ray tracing dispatch. For **vkCmdTraceRaysKHR**, the location of the ray generation shader is specified by the **pRaygenShaderBindingTable->deviceAddress** parameter — there is no indexing.
     - **Hit Shaders**：The base for the computation of intersection, any-hit, and closest hit shader locations is the **instanceShaderBindingTableRecordOffset** value stored with each instance of a top-level acceleration structure (**VkAccelerationStructureInstanceKHR**). This value determines the beginning of the shader binding table records for a given instance. For vkCmdTraceRaysKHR, the complete rule to compute a hit shader binding table record address in the pHitShaderBindingTable is: 
     **pHitShaderBindingTable->deviceAddress** + **pHitShaderBindingTable->stride** × (**instanceShaderBindingTableRecordOffset** + **geometryIndex** × **sbtRecordStride** + **sbtRecordOffset** )  (note: geometryIndex is a shader built-in variable, sbtRecordStride and sbtRecordOffset is passed by traceRayEXT)
     - **Miss Shaders**: A miss shader is executed whenever a ray query fails to find an intersection for the given scene geometry. Multiple miss shaders may be executed throughout a ray tracing dispatch. The base for the computation of miss shader locations is **pMissShaderBindingTable->deviceAddress**, a device address passed into vkCmdTraceRaysKHR. The missIndex value is passed in as a parameter to traceNV() or traceRayEXT() calls made in the shaders. For vkCmdTraceRaysKHR, the complete rule to compute a miss shader binding table record address in the pMissShaderBindingTable is: **pMissShaderBindingTable->deviceAddress** + **pMissShaderBindingTable->stride** × **missIndex**.
     - **Callable Shaders**: A callable shader is executed when requested by a ray tracing shader. Multiple callable shaders may be executed throughout a ray tracing dispatch. The base for the computation of callable shader locations is pCallableShaderBindingTable->deviceAddress, a device address passed into vkCmdTraceRaysKHR. For vkCmdTraceRaysKHR, the complete rule to compute a callable shader binding table record address in the pCallableShaderBindingTable is: **pCallableShaderBindingTable->deviceAddress** + **pCallableShaderBindingTable->stride** × **sbtRecordIndex**.
+    - **closest-hit and miss**: Once the ray traversal has determined all possibles hits along the ray and at least one hit has occurred, the closest-hit shader is called for the closest one of these hits. Otherwise, if no hit occurred, the miss shader is called. Both types of shaders can manipulate the ray payload. The closest-hit and miss shader can also call the traceRayEXT function, which submits another ray into the ray traversal block and might create a recursion. A typical application in the closest-hit shader is shooting a "shadow" ray in the direction of the light source to determine if the light is occluded by other objects.
 
 
     ```glsl
@@ -713,8 +717,81 @@ VkAccelerationStructureInstanceKHR.mask                                     ->  
             tMax,           // ray max range
             0               // payload (location = 0)
     );
-```
+    ```
+- Smuggle Additional Information in the SBT:
+    - In cpp:
+        - define param struct 
+        ```c
+            struct HitRecordBuffer
+            {
+                nvmath::vec4f color;
+            };
+        ```
+        - allocate buffer with additional size:
+        ```c
+            m_hitRegion.stride  = nvh::align_up(handleSize + sizeof(HitRecordBuffer), m_rtProperties.shaderGroupHandleAlignment);
+            m_hitRegion.size    = nvh::align_up(hitCount * m_hitRegion.stride, m_rtProperties.shaderGroupBaseAlignment);
+            // Allocate a buffer for storing the SBT.
+            VkDeviceSize sbtSize = m_rgenRegion.size + m_missRegion.size + m_hitRegion.size + m_callRegion.size;
+            m_rtSBTBuffer        = m_alloc.createBuffer(sbtSize);
+        ```
+        - memcopy additional information next to the record:
+        ```c
+            auto recordDataSize = sizeof(HitRecordBuffer);
+            // hit 1
+            pData = pSBTBuffer + m_rgenRegion.size + m_missRegion.size + m_hitRegion.stride;
+            memcpy(pData, getHandle(handleIdx++), handleSize);
+            pData += handleSize;
+            memcpy(pData, &m_hitShaderRecord[0], recordDataSize);  // Hit 1 data
 
+            // hit 2
+            pData = pSBTBuffer + m_rgenRegion.size + m_missRegion.size + (2 * m_hitRegion.stride);
+            memcpy(pData, getHandle(handleIdx++), handleSize);
+            pData += handleSize;
+            memcpy(pData, &m_hitShaderRecord[1], recordDataSize);  // Hit 2 data
+        ```
+    - In GLSL: using **shaderRecordEXT**
+    ```
+        #version 460
+        #extension GL_EXT_ray_tracing : require
+        #extension GL_GOOGLE_include_directive : enable
+
+        #include "raycommon.glsl"
+
+        // clang-format off
+        layout(location = 0) rayPayloadInEXT hitPayload prd;
+        layout(shaderRecordEXT) buffer sr_ { vec4 shaderRec; };
+        // clang-format on
+
+        void main()
+        {
+            prd.hitValue = shaderRec.rgb;
+        }
+    ```
+#### 2.4.4 Ray trace payloads
+- Ray trace payloads are declared as rayPayloadEXT or rayPayloadInEXT variables, they establish a caller/callee relationship between shader stages.
+- Each invocation of a shader creates its own local copy of its declared rayPayloadEXT variables, when invoking another shader by calling traceRayEXT(), the caller can select one of its payloads to be made visible to the callee shader as its rayPayloadInEXT variable
+
+
+#### 2.4.5 GLSL Shader
+
+<div align=center>
+<img src="./pics/ray-trace-shader-built-in-variable.png" width="49%">
+
+</div>
+<div align=center>
+<img src="./pics/ray-trace-shader-built-in-const.png" width="49%">
+</div>
+
+- **Build-In**: 
+    - gl_LaunchIDEXT: the integer coordinates of the pixel being rendered
+    - gl_LaunchSizeEXT: the image size provided when calling vkCmdTraceRaysKHR
+    - gl_WorldRayDirectionEXT
+    - gl_InstanceCustomIndexEXT: equa to VkAccelerationStructureInstanceKHR.instanceCustomIndex whne createTopLevelAS
+    - gl_PrimitiveID
+    - gl_InstanceID: the index of the intersected instance as it appeared in the array of instances used to build the TLAS.gl_InstanceID for the intersection, any-hit, and closest hit shaders.
+
+    
 ### 2.5  Ray Queries
 - Ray queries provide direct access to ray traversal logic in any shader stage, allowing them to be plugged into existing shaders and enhancing the effects those shaders express.
 
@@ -733,6 +810,8 @@ VkAccelerationStructureInstanceKHR.mask                                     ->  
 https://www.khronos.org/blog/ray-tracing-in-vulkan
 
 https://nvpro-samples.github.io/vk_raytracing_tutorial_KHR/
+
+https://www.gsn-lib.org/docs/nodes/raytracing.php
 
 
 
