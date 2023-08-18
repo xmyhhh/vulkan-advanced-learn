@@ -18,6 +18,58 @@ Suppose that we have a second basis $C=\left\lbrace c_{1}, \ldots, c_{K}\right\r
 
 how do we transform a coordinate vector $[s]_{B}$ into a vector $[s]_{C}$ of coordinates with respect to the new basis?
 
+* new vec3 = basis in new space(mat3) * old vec3;
+
+### 1.3 Tangent space to world
+
+<div align=center>
+<img src="./pics/tangentSample.jpg" width="60%">
+</div>
+
+```glsl
+// Based on http://blog.selfshadow.com/publications/s2013-shading-course/karis/s2013_pbs_epic_slides.pdf
+vec3 importanceSample_GGX(vec2 Xi, float roughness, vec3 normal) 
+{
+	// Maps a 2D point to a hemisphere with spread based on roughness
+	float alpha = roughness * roughness;
+	float phi = 2.0 * PI * Xi.x + random(normal.xz) * 0.1;
+	float cosTheta = sqrt((1.0 - Xi.y) / (1.0 + (alpha*alpha - 1.0) * Xi.y));
+	float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
+	vec3 H = vec3(sinTheta * cos(phi), sinTheta * sin(phi), cosTheta);
+
+	// Tangent space
+	vec3 up = abs(normal.z) < 0.999 ? vec3(0.0, 0.0, 1.0) : vec3(1.0, 0.0, 0.0);
+	vec3 tangentX = normalize(cross(up, normal));
+	vec3 tangentY = normalize(cross(normal, tangentX));
+
+	// Convert to world Space
+	return normalize(tangentX * H.x + tangentY * H.y + normal * H.z);
+}
+```
+
+```glsl
+mat3 getNormalSpace(in vec3 normal) {
+   vec3 someVec = vec3(1.0, 0.0, 0.0);
+   float dd = dot(someVec, normal);
+   vec3 tangent = vec3(0.0, 1.0, 0.0);
+   if(1.0 - abs(dd) > 1e-6) {
+     tangent = normalize(cross(someVec, normal));
+   }
+   vec3 bitangent = cross(normal, tangent);
+   return mat3(tangent, bitangent, normal);
+}
+```
+
+```glsl
+vec3 GetNormalFromNormalMap(vec2 UV, sampler2D samplerNormalMap, vec3 normal, vec3 tangent) {
+	vec3 N = normalize(normal);
+	vec3 T = normalize(tangent);
+	vec3 B = cross(N, T);
+	mat3 TBN = mat3(T, B, N);
+	return TBN * normalize(texture(samplerNormalMap, UV).xyz * 2.0 - vec3(1.0));
+}
+```
+
 ### 1.3 Gamma Correct
 Generally the art provides Albedo etc. maps in Gamma Color Space, i.e. the color values of Albedo etc. maps are carried out 1/2.2 times (approximated) with respect to Linear Color Space
 
@@ -84,9 +136,7 @@ for(float phi = 0.0; phi < 2.0 * PI; phi += sampleDelta)
 }
 irradiance = PI * irradiance * (1.0 / float(nrSamples));
 ```
-<div align=center>
-<img src="./pics/tangentSample.jpg" width="60%">
-</div>
+
 <!-- ![irradiance map](./pics/tangentSample.jpg =100x100)  -->
 
 <div align=center>

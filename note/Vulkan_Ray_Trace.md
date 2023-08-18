@@ -40,14 +40,13 @@ $$
 - Vulkan 1.1 and SPIR-V 1.4 are now required.
 
 ### 2.2 [Acceleration Structure](https://nvpro-samples.github.io/vk_raytracing_tutorial_KHR/)
-- ray tracing requires organizing the geometry into an acceleration structure (AS) that will reduce the number of ray-triangle intersection tests during rendering.
-- This is typically implemented in hardware as a hierarchical structure, but only two levels are exposed to the user: a single **top-level acceleration structure (TLAS)** referencing any number of **bottom-level acceleration structures (BLAS)**
-- Typically, a **BLAS** corresponds to individual 3D models within a scene, and a **TLAS** corresponds to an entire scene built by positioning (with 3-by-4 transformation matrices) individual referenced BLASes.
-- **BLAS** store the actual vertex data. The **TLAS** will contain the object instances, each with its own transformation matrix and reference to a corresponding BLAS. 
+- ray tracing requires organizing the geometry into an acceleration structure (AS) that will reduce the number of ray-triangle intersection tests during rendering. This is typically implemented in hardware as a hierarchical structure, but only two levels are exposed to the user: a single **top-level acceleration structure (TLAS)** referencing any number of **bottom-level acceleration structures (BLAS)**
+- Typically, a **BLAS** corresponds to individual 3D models within a scene, and a **TLAS** corresponds to an entire scene built by positioning (with 3-by-4 transformation matrices) individual referenced BLASes. **BLAS** store the actual vertex data. The **TLAS** will contain the object instances, each with its own transformation matrix and reference to a corresponding BLAS. 
 - The bottom-level acceleration structure is only used by reference from the top-level acceleration structure.
 - The top-level acceleration structure is accessed from the shader as a descriptor binding or by device address (obtained via vkGetAccelerationStructureDeviceAddressKHR).
-- we made changes to use device addresses consistently throughout all the extensions. 
-
+- Each BLAS can be either a triangle mesh or a user-defined collection of axis-aligned bounding boxes (AABBs).
+- A BLAS can be instantiated in the TLAS and gets a unique gl_InstanceID
+- Each Instance has its transformation from object to world space, which is initially assigned when the BLAS is added to the TLAS(by VkAccelerationStructureInstanceKHR.transform). This transformation is accessible in the shader via the gl_ObjectToWorldEXT and gl_WorldToObjectEXT variables.
 <div align=center>
 <img src="./pics/AccelerationStructure.svg" width="70%">
 </div>
@@ -787,9 +786,10 @@ VkAccelerationStructureInstanceKHR.mask                                     ->  
     - gl_LaunchIDEXT: the integer coordinates of the pixel being rendered
     - gl_LaunchSizeEXT: the image size provided when calling vkCmdTraceRaysKHR
     - gl_WorldRayDirectionEXT
+    - gl_ObjectToWorldEXT & gl_WorldToObjectEXT: Each Instance has its transformation from object to world space, which is initially assigned when the BLAS is added to the TLAS(by VkAccelerationStructureInstanceKHR.transform). This transformation is accessible in the shader via the gl_ObjectToWorldEXT and gl_WorldToObjectEXT variables.
     - gl_InstanceCustomIndexEXT: equa to VkAccelerationStructureInstanceKHR.instanceCustomIndex whne createTopLevelAS
-    - gl_PrimitiveID
-    - gl_InstanceID: the index of the intersected instance as it appeared in the array of instances used to build the TLAS.gl_InstanceID for the intersection, any-hit, and closest hit shaders.
+    - gl_PrimitiveID: each triangle in a triangle mesh and each AABB in the collection of intersection boxes gets a consecutive gl_PrimitiveID.
+    - gl_InstanceID: the index of the intersected instance as it appeared in the array of instances used to build the TLAS.gl_InstanceID for the intersection, any-hit, and closest hit shaders. A BLAS can be instantiated in the TLAS and gets a unique gl_InstanceID.
 
     
 ### 2.5  Ray Queries
