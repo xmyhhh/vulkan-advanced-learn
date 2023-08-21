@@ -93,13 +93,11 @@ L_o\left(p, \omega_o\right) & \approx
 $$
 
 
-## 3. Multiple Importance Sampling
-
-
-### 1.3 The Inverse Transform Method
+### 3. The Inverse Transform Method
 Inverse transform sampling is a method for generating random numbers from any probability distribution by using its inverse cumulative distribution function.
 
-#### 1.3.1 Continuous Distributions Sampling
+<b>Continuous Distributions Sampling</b>
+
 The cumulative distribution function(CDF) for a random variable $X$ represents:
 $$
 F_X(x)=P(X \leq x)
@@ -109,11 +107,11 @@ We can sample variable $X$ by two step:
 * Generate $U∼uniform(0,1)$
 * Let $X=F^{−1}X(U)$
 
-### 1.3.2 Discrete Distributions Sampling
+<b>Discrete Distributions Sampling</b>
+
 [read hear](https://stephens999.github.io/fiveMinuteStats/inverse_transform_sampling.html)
 
-
-## 2.1 Sampling GGX
+## 3.1 Sampling GGX
 Basic form of GGX represents:
 $$
 D(h)=\frac{\alpha^2}{\pi\left(\left(\alpha^2-1\right) \cos ^2 \theta+1\right)^2}
@@ -196,8 +194,64 @@ float3 ImportanceSampleGGX( float2 Xi, float Roughness, float3 N )
 }
 ```
 
-## 2.2 Sampling Beckmann
+## 3.2 Sampling Beckmann
 [read hear](https://stephens999.github.io/fiveMinuteStats/inverse_transform_sampling.html)
 
-## 2.3 Sampling Blinn
+## 3.3 Sampling Blinn
 [read hear](https://stephens999.github.io/fiveMinuteStats/inverse_transform_sampling.html)
+
+
+### 4. Other Sampling Method
+
+#### 4.1 [Spherical uniform sampling](http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html)
+<b>Hammersley Point Set</b>: We consider a point set $\mathcal{P}_{\mathcal{N}}=\left\{\mathbf{x}_{1}, \ldots, \mathbf{x}_{N}\right\}$ with the number of points $N >=1$ on the two-dimensional unit-square $\left [ 0,{}1  \right ] ^{2} $, The Hammersley Point Set $\mathcal{H}_{\mathcal{N}}$ is now defined as:
+
+$$
+\mathcal{H}_{\mathcal{N}}=\left\{\mathbf{x}_{i}=\left(\begin{array}{c}
+i / N \\
+\Phi_{2}(i)
+\end{array}\right), \quad \text { for } \quad i=0, \ldots, N-1\right\}
+$$
+where $\Phi_{2}(i)$ is the Van der Corput sequence. As you can see the point (0, 0) is always part of this sequence.
+
+<div align=center>
+<img src="./pics/Hammersley.png" width="40%">
+</div>
+
+<b>Generating Points on the Hemisphere</b>
+
+Let $x_i=\begin{bmatrix} u \\v \end{bmatrix}∈\mathcal{H}_{\mathcal{N}}$ be a point from our chosen Hammersley point set.
+
+<div align=center>
+<img src="./pics/Hammersley-hemisphere.png" width="80%">
+</div>
+
+```glsl
+ float radicalInverse_VdC(uint bits) {
+     bits = (bits << 16u) | (bits >> 16u);
+     bits = ((bits & 0x55555555u) << 1u) | ((bits & 0xAAAAAAAAu) >> 1u);
+     bits = ((bits & 0x33333333u) << 2u) | ((bits & 0xCCCCCCCCu) >> 2u);
+     bits = ((bits & 0x0F0F0F0Fu) << 4u) | ((bits & 0xF0F0F0F0u) >> 4u);
+     bits = ((bits & 0x00FF00FFu) << 8u) | ((bits & 0xFF00FF00u) >> 8u);
+     return float(bits) * 2.3283064365386963e-10; // / 0x100000000
+ }
+  vec2 hammersley2d(uint i, uint N) {
+     return vec2(float(i)/float(N), radicalInverse_VdC(i));
+ }
+ 
+ const float PI = 3.14159265358979;
+
+ vec3 hemisphereSample_uniform(float u, float v) {
+     float phi = v * 2.0 * PI;
+     float cosTheta = 1.0 - u;
+     float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
+     return vec3(cos(phi) * sinTheta, sin(phi) * sinTheta, cosTheta);
+ }
+    
+ vec3 hemisphereSample_cos(float u, float v) {
+     float phi = v * 2.0 * PI;
+     float cosTheta = sqrt(1.0 - u);
+     float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
+     return vec3(cos(phi) * sinTheta, sin(phi) * sinTheta, cosTheta);
+ }
+```
