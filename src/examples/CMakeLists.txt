@@ -4,6 +4,7 @@ set(EXAMPLES
 	deferred
 	reflect_shadow_map
 	ray_trace
+	kriging
 )
 
 

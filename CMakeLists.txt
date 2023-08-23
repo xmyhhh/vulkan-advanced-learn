@@ -35,7 +35,6 @@ ELSE()
 ENDIF()
 
 
-
 add_definitions(-DVK_EXAMPLE_ASSETS_DIR=\"${CMAKE_SOURCE_DIR}/assets/\")
 add_definitions(-DVK_EXAMPLE_SHADERS_DIR=\"${CMAKE_SOURCE_DIR}/src/shaders/\")
 
